@@ -1,0 +1,5 @@
+model,split,accuracy,macro_f1
+nb,valid,0.0,0.0
+lr,valid,0.0,0.0
+nb,test,0.5,0.3333333333333333
+lr,test,0.5,0.3333333333333333
