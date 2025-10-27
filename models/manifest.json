@@ -1,87 +1,36 @@
-{
-  "generated_at": "2025-10-23T19:18:57",
-  "train_size": 11,
-  "valid_size": 1,
-  "test_size": 2,
-  "models": {
-    "nb": {
-      "path": "models\\song_nb_v1_20251023.joblib",
-      "valid": {
-        "accuracy": 0.0,
-        "macro_f1": 0.0,
-        "per_class": {
-          "bad": {
-            "precision": 0.0,
-            "recall": 0.0,
-            "f1": 0.0,
-            "support": 1
-          },
-          "good": {
-            "precision": 0.0,
-            "recall": 0.0,
-            "f1": 0.0,
-            "support": 0
-          }
-        }
-      },
-      "test": {
-        "accuracy": 0.5,
-        "macro_f1": 0.3333333333333333,
-        "per_class": {
-          "bad": {
-            "precision": 0.0,
-            "recall": 0.0,
-            "f1": 0.0,
-            "support": 1
-          },
-          "good": {
-            "precision": 0.5,
-            "recall": 1.0,
-            "f1": 0.6666666666666666,
-            "support": 1
-          }
-        }
-      }
-    },
-    "lr": {
-      "path": "models\\song_lr_v1_20251023.joblib",
-      "valid": {
-        "accuracy": 0.0,
-        "macro_f1": 0.0,
-        "per_class": {
-          "bad": {
-            "precision": 0.0,
-            "recall": 0.0,
-            "f1": 0.0,
-            "support": 1
-          },
-          "good": {
-            "precision": 0.0,
-            "recall": 0.0,
-            "f1": 0.0,
-            "support": 0
-          }
-        }
-      },
-      "test": {
-        "accuracy": 0.5,
-        "macro_f1": 0.3333333333333333,
-        "per_class": {
-          "bad": {
-            "precision": 0.0,
-            "recall": 0.0,
-            "f1": 0.0,
-            "support": 1
-          },
-          "good": {
-            "precision": 0.5,
-            "recall": 1.0,
-            "f1": 0.6666666666666666,
-            "support": 1
-          }
-        }
-      }
-    }
-  },
-  "best_on_valid": "nb"
+﻿{
+    "splits":  {
+                   "train":  140,
+                   "valid":  17,
+                   "seed":  42,
+                   "test":  19
+               },
+    "features":  {
+                     "word_ngram":  "1-2",
+                     "char_ngram":  "3-5",
+                     "keep_apostrophe":  true,
+                     "sublinear_tf":  true
+                 },
+    "model":  "models/song_lr_v2_plus_20251026.joblib",
+    "thresholds":  {
+                       "strict":  0.5,
+                       "default":  0.45,
+                       "zero_fp":  0.52
+                   },
+    "metrics_snapshot":  {
+                             "test":  {
+                                          "macro_f1":  0.9474,
+                                          "cm":  {
+                                                     "fn":  0,
+                                                     "tn":  9,
+                                                     "tp":  9,
+                                                     "fp":  1
+                                                 },
+                                          "acc":  0.9474
+                                      },
+                             "valid":  {
+                                           "acc":  0.9412,
+                                           "macro_f1":  0.9244
+                                       }
+                         }
 }

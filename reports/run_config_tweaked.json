@@ -1,0 +1,19 @@
+{
+  "tfidf": {
+    "ngram": [
+      1,
+      2
+    ],
+    "min_df": 3,
+    "max_df": 0.9,
+    "stop_words": "english",
+    "token_pattern": "(?u)\\b[\\w']+\\b",
+    "binary": false,
+    "sublinear_tf": false
+  },
+  "clf": {
+    "C": 1.0,
+    "max_iter": 200,
+    "random_state": 42
+  }
+}
