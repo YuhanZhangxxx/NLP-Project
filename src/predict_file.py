@@ -22,14 +22,14 @@ def main():
 
     try:
         proba = pipe.predict_proba([txt])[0]
-        # 获取'good'和'bad'在概率向量中的下标（按模型实际classes_来定）
+        # get indices of 'good' and 'bad' in probability vector (based on actual model classes_)
         clf = getattr(pipe, "named_steps", {}).get("clf", None)
         classes = list(getattr(clf, "classes_", []))
         if classes and ("good" in classes and "bad" in classes):
             i_good = classes.index("good")
             i_bad  = classes.index("bad")
         else:
-            # 后备：假定顺序 [bad, good]
+            # fallback: assume order [bad, good]
             i_bad, i_good = 0, 1
 
         p_good = float(proba[i_good])
