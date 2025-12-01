@@ -3,12 +3,21 @@ import argparse, joblib
 from pathlib import Path
 
 def read_text(p: Path):
+    """Read text file and preprocess to match training format (newlines -> spaces)"""
+    import re
     for enc in ("utf-8", "utf-8-sig", "latin-1"):
         try:
-            return p.read_text(encoding=enc, errors="ignore")
+            text = p.read_text(encoding=enc, errors="ignore")
+            # Match training preprocessing: replace newlines/tabs with spaces
+            text = re.sub(r"[\r\n\t]+", " ", text).strip()
+            return text
         except Exception:
             pass
-    return p.read_text(errors="ignore")
+    text = p.read_text(errors="ignore")
+    # Match training preprocessing: replace newlines/tabs with spaces
+    import re
+    text = re.sub(r"[\r\n\t]+", " ", text).strip()
+    return text
 
 def main():
     ap = argparse.ArgumentParser()
