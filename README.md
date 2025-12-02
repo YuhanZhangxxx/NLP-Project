@@ -321,6 +321,32 @@ python scripts/test_full_dataset.py --model models/song_lr_v2_plus_20251026.jobl
 
 ## (Optional) Transcribe Audio → Lyrics
 
+### End-to-End: Transcribe + Judge (Recommended)
+
+**Single command to transcribe audio and judge quality:**
+
+```bash
+# Basic usage
+python scripts/transcribe_and_judge.py --audio audio/song.mp3
+
+# With detailed analysis
+python scripts/transcribe_and_judge.py --audio audio/song.mp3 --detailed
+
+# Use large-v3 for best quality
+python scripts/transcribe_and_judge.py --audio audio/song.mp3 --model large-v3 --detailed
+
+# Keep transcript files
+python scripts/transcribe_and_judge.py --audio audio/song.mp3 --detailed --keep-transcript
+```
+
+**What it does:**
+1. Transcribes audio with Whisper
+2. Cleans lyrics (removes ads, artifacts)
+3. Judges quality with the model
+4. Optionally keeps transcript files
+
+### Batch Transcription (For Building Corpus)
+
 For building your corpus from battle videos or MP3s using Whisper.
 
 ```bash
