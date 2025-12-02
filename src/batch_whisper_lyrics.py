@@ -15,7 +15,7 @@ def main():
     ap = argparse.ArgumentParser(description="Batch Whisper -> one-line-per-segment lyrics (.txt per song)")
     ap.add_argument("--input", required=True, help="audio file or folder")
     ap.add_argument("--output", required=True, help="output folder for .txt lyrics")
-    ap.add_argument("--model", default="large-v3", help="tiny/base/small/medium/large-v3/turbo")
+    ap.add_argument("--model", default="medium", help="medium/large-v3 recommended (default: medium)")
     ap.add_argument("--device", default="cuda", choices=["cuda","cpu","auto"])
     ap.add_argument("--language", default="en", help="en/English, zh/Chinese, etc.")
     args = ap.parse_args()
@@ -47,11 +47,29 @@ def main():
         try:
             result = model.transcribe(
                 str(f), language=args.language, task="transcribe",
-                verbose=False, fp16=fp16, temperature=0.0
+                verbose=False, fp16=fp16, temperature=0.0,
+                beam_size=5,
+                best_of=5,
+                condition_on_previous_text=True
             )
             segments = result.get("segments", [])
             lines = [ (s.get("text") or "").strip() for s in segments ]
             lines = [ ln for ln in lines if ln ]
+            
+            # Filter out obvious transcription errors (repeated single words)
+            filtered_lines = []
+            for ln in lines:
+                words = ln.split()
+                # Skip lines that are mostly repetition of a single word
+                if len(words) > 3:
+                    unique_ratio = len(set(words)) / len(words)
+                    if unique_ratio < 0.2:  # Less than 20% unique words = likely error
+                        continue
+                # Skip lines that are just "word, word, word..." pattern
+                if len(words) > 5 and len(set(words)) == 1:
+                    continue
+                filtered_lines.append(ln)
+            lines = filtered_lines
             out_path = out_dir / (f.stem + ".txt")
             with open(out_path, "w", encoding="utf-8") as w:
                 for ln in lines:

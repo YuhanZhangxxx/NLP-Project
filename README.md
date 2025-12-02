@@ -23,8 +23,9 @@ rap-judge/
 │  ├─ split_data.py           # fixed ratio splits only (train/valid/test)
 │  ├─ train_baselines.py      # train + eval (NB/LR)
 │  ├─ train_lr_tweaks.py      # LR tweaks (stopwords/ngram etc.)
-│  ├─ train_lr_plus.py        # LR+ (word+char+extra stats)
-│  ├─ predict_file.py         # predict from a file (won’t echo/save lyrics)
+│  ├─ train_lr_plus.py        # LR+ (word+char+extra stats) ⭐ Recommended
+│  ├─ analyze_song.py         # 🎤 Detailed analysis with interactive mode ⭐ NEW
+│  ├─ predict_file.py         # simple prediction from file
 │  ├─ predict_local.py        # quick test from inline text (logs to CSV)
 │  ├─ dump_split_preds.py     # batch-predict entire split files
 │  ├─ explain_file_v2.py      # explain LR/NB with top n-grams
@@ -37,14 +38,29 @@ rap-judge/
 │  ├─ batch_whisper_lyrics.py # Whisper batch ASR
 │  ├─ fw_batch_lyrics.py      # Faster-Whisper batch ASR
 │  └─ transcribe_whisper.py   # single-file ASR helper
-├─ clean_lyrics.py        # root-level cleaner (NOT under src/)
+├─ scripts/              # Testing and utility scripts
+│  ├─ test_first_20_songs.py  # Test first N songs for overfitting check
+│  ├─ test_full_dataset.py    # Test entire dataset for overfitting
+│  └─ show_progression.py     # (if used) Model progression visualization
+├─ judge.py              # ⭐ Quick judge (auto-selects model)
+├─ clean_lyrics.py       # Root-level cleaner (NOT under src/)
 ├─ requirements.txt
 └─ README.md
 ```
 
 ---
 
-## Setup (Windows PowerShell)
+## Setup
+
+### Mac/Linux
+```bash
+cd /path/to/CS486-NLP-Project
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Windows PowerShell
 ```powershell
 cd "C:\Users\<you>\Desktop\rap-judge"
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
@@ -63,17 +79,31 @@ chcp 65001 > $null
 
 ---
 
-## Add data (pick one)
-### A) TXT folders (easy for labeling)
-```
-# put your files like this
+## Add Data
 
+### A) TXT Folders (Recommended)
+Organize your lyrics into folders:
+```
 data/raw_txt/good/*.txt
 data/raw_txt/bad/*.txt
-
-# turn into CSV
-python .\src\ingest_txt.py --root data\raw_txt --out data\raw\dataset.csv --id_style fname
 ```
+
+**Step 1: Clean lyrics** (removes ads, transcription artifacts)
+```bash
+# Clean all files in raw_txt directory
+python clean_lyrics.py data/raw_txt
+# Creates *.clean.txt files next to originals
+```
+
+**Step 2: Convert to CSV**
+```bash
+# Mac/Linux
+python src/ingest_txt.py --root data/raw_txt --out data/raw/dataset.csv --id_style fname
+
+# Windows
+python src\ingest_txt.py --root data\raw_txt --out data\raw\dataset.csv --id_style fname
+```
+
 This creates **data/raw/dataset.csv** with columns: `id,text,label`.
 
 ### B) Already have a CSV?
@@ -84,103 +114,235 @@ id,text,label  # label must be "good" or "bad"
 
 ---
 
-## Clean lyrics (idempotent)
-`clean_lyrics.py` is at the **repo root**. Usage is simple: pass a **file or a folder**; it writes `*.clean.txt` **next to originals** and **won’t double‑clean**.
+## Clean Lyrics
 
-```powershell
+`clean_lyrics.py` is at the **repo root**. It automatically removes ads, transcription artifacts, and section markers.
+
+```bash
 # Single file → writes track1.clean.txt next to track1.txt
-python .\clean_lyrics.py "data\raw_txt\good\track1.txt"
+python clean_lyrics.py data/raw_txt/good/track1.txt
 
 # Folder (recurses) → for each *.txt, writes a *.clean.txt sibling
-python .\clean_lyrics.py "data\raw_txt"
+python clean_lyrics.py data/raw_txt
 ```
-What it removes: section headers like `[Chorus]`, ad/shoutout lines, "You might also like" blocks, ticket spam lines, etc.
 
-> Tip: You can **ingest the cleaned files only** by pointing `ingest_txt.py` at a directory that contains the `*.clean.txt` files (or move them into a `raw_txt_clean/` folder first).
+**What it removes:**
+- Section headers: `[Chorus]`, `[Verse 1]`, `[Intro]`, etc.
+- Transcription artifacts: "We'll be right back", "Do not censor", "Thank you for watching", etc.
+- Ad lines: "Get tickets...", "See tickets near...", etc.
+- "You might also like" recommendation blocks
+- All-caps short shouts (like "DESERT STORM!!")
+
+> **Tip**: The cleaning function is also built into `analyze_song.py` and `judge.py`, so lyrics are automatically cleaned when you use those tools.
 
 ---
 
-## Make fixed splits (reproducible)
-```powershell
-python .\src\split_data.py --in data\raw\dataset.csv --train 0.8 --valid 0.1 --test 0.1 --seed 42
-# outputs: data/processed/train.txt, valid.txt, test.txt
+## Make Fixed Splits (Reproducible)
+
+```bash
+# Mac/Linux
+python src/split_data.py --in data/raw/dataset.csv --train 0.8 --valid 0.1 --test 0.1 --seed 42
+
+# Windows
+python src\split_data.py --in data\raw\dataset.csv --train 0.8 --valid 0.1 --test 0.1 --seed 42
 ```
 
+**Outputs:** `data/processed/train.txt`, `valid.txt`, `test.txt` (lists of song IDs)
 
-## Train + evaluate (baselines)
-```powershell
-python .\src\train_baselines.py --in data\raw\dataset.csv --seed 42
+
+## Train Models
+
+### Baseline Models (NB + LR v1)
+```bash
+python src/train_baselines.py --in data/raw/dataset.csv --seed 42
 ```
-**Check outputs:**
+
+**Outputs:**
 - `reports/metrics.csv` — accuracy + macro‑F1 on valid/test for NB/LR
 - `reports/confusion_matrix_nb.png`, `reports/confusion_matrix_lr.png`
 - `reports/run_config.json` — TF‑IDF + model params + seed + split files
-- Models in **models/** — `song_nb_v1_YYYYMMDD.joblib`, `song_lr_v1_YYYYMMDD.joblib`, `manifest.json`
+- Models: `models/song_nb_v1_YYYYMMDD.joblib`, `models/song_lr_v1_YYYYMMDD.joblib`
 
-**Defaults (tweak via CLI):**
+**Defaults:**
 - TF‑IDF: `ngram=(1,2)`, `min_df=2`, `max_df=0.9`
 - NB: `alpha=1.0`
 - LR: `C=1.0`, `max_iter=200`
 
----
-
-## Predict (no lyrics printed/saved)
-Use when you don’t want lyrics echoed anywhere.
-```powershell
-# grab the newest LR model
-$model = (Get-ChildItem .\models\song_lr_v1_*.joblib | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
-
-# predict a single song file (only shows result)
-python .\src\predict_file.py --model "$model" --file "C:\path\to\song.txt"
-
-# stricter bar for calling "good" (default is 0.50)
-python .\src\predict_file.py --model "$model" --file "C:\path\to\song.txt" --th_good 0.60
+### LR+ Model (Recommended - Better Performance) ⭐
+```bash
+python src/train_lr_plus.py --csv data/raw/dataset.csv --seed 42
 ```
 
-### Quick local probe (logs text for debugging)
-```powershell
-python .\src\predict_local.py --model .\models\song_lr_v1_*.joblib --text "Some lyric here"
+**Features:**
+- Word n-grams (1-2)
+- Character n-grams (3-5)
+- Extra statistical features (length, vocabulary diversity, repetition, etc.)
+
+**Outputs:**
+- Model: `models/song_lr_v2_plus_YYYYMMDD.joblib` or `models/song_lr_v2_plus.joblib`
+- Config: `reports/run_config_plus.json`
+
+---
+
+## Predict & Judge
+
+### 🎤 Interactive Mode (Recommended - NEW!)
+**Best for pasting lyrics directly with special characters** (quotes, brackets, etc.)
+
+```bash
+# Interactive mode - paste lyrics directly
+python src/analyze_song.py --model models/song_lr_v2_plus_20251026.joblib --interactive
+# Then paste your lyrics, press Ctrl+D (Mac/Linux) or Ctrl+Z+Enter (Windows) when done
+# Or type 'END' on a separate line to finish
+```
+
+**Features:**
+- ✅ Handles any special characters (no shell parsing issues)
+- ✅ Automatic lyrics cleaning (removes ads, transcription artifacts)
+- ✅ Detailed analysis with quality score, feature contributions, statistics
+- ✅ Optional line-by-line analysis with `--lines` flag
+
+### Quick Judge (Simple Text Input)
+**For simple lyrics without special characters:**
+
+```bash
+# Simple judge (auto-selects latest model)
+python judge.py "Your rap lyrics here"
+
+# With custom model
+python judge.py --model models/song_lr_v2_plus_20251026.joblib "Your lyrics"
+```
+
+### Detailed Analysis (File or Text)
+**Full analysis with quality score and explanations:**
+
+```bash
+# From file
+python src/analyze_song.py --model models/song_lr_v2_plus_20251026.joblib --file lyrics.txt
+
+# Direct text input
+python src/analyze_song.py --model models/song_lr_v2_plus_20251026.joblib --text "Your lyrics here"
+
+# With line-by-line analysis
+python src/analyze_song.py --model models/song_lr_v2_plus_20251026.joblib --file lyrics.txt --lines
+
+# Adjust threshold
+python src/analyze_song.py --model models/song_lr_v2_plus_20251026.joblib --file lyrics.txt --th_good 0.60
+```
+
+### Simple Prediction (No Lyrics Printed)
+**Use when you only want the result, no detailed analysis:**
+
+```bash
+# Predict from file (simple output)
+python src/predict_file.py --model models/song_lr_v2_plus_20251026.joblib --file lyrics.txt
+
+# With custom threshold
+python src/predict_file.py --model models/song_lr_v2_plus_20251026.joblib --file lyrics.txt --th_good 0.60
+```
+
+### Quick Test (Logs to CSV)
+**For debugging - saves predictions to CSV:**
+
+```bash
+python src/predict_local.py --model models/song_lr_v2_plus_20251026.joblib --text "Some lyric here"
 # writes to reports/pred_samples.csv
 ```
 
-### Batch‑predict a folder (without printing lyrics)
-```powershell
+### Batch Predict Folder
+```bash
+# Linux/Mac
+find /path/to/lyrics -name "*.txt" -exec python src/predict_file.py --model models/song_lr_v2_plus_20251026.joblib --file {} \;
+
+# Windows PowerShell
 Get-ChildItem -Path "C:\path\to\lyrics" -Filter *.txt -Recurse | ForEach-Object {
-  python .\src\predict_file.py --model "$model" --file $_.FullName --th_good 0.60
+  python src\predict_file.py --model models\song_lr_v2_plus_20251026.joblib --file $_.FullName --th_good 0.60
 }
 ```
 
 ---
 
-## Explain a prediction (why LR/NB decided so)
+## Explain Predictions
+
 Feature‑level view of n‑grams that push **GOOD** vs **BAD**.
-```powershell
-python .\src\explain_file_v2.py --model "$model" --file "C:\path\to\song.txt" --th 0.50 --top 12
+
+```bash
+python src/explain_file_v2.py --model models/song_lr_v2_plus_20251026.joblib --file lyrics.txt --th 0.50 --top 12
 ```
-Outputs top contributing n‑grams for each side plus the final label.
+
+**Outputs:**
+- Top contributing n-grams for "good" classification
+- Top contributing n-grams for "bad" classification
+- Final label and probabilities
+
+**Note:** `analyze_song.py` also provides feature contributions as part of its detailed analysis.
 
 ---
 
-## Error analysis (find FP/FN quickly)
-```powershell
-python .\src\export_errors.py --in data\raw\dataset.csv
-# open reports/errors_fp_fn.csv (bad→good = FP, good→bad = FN)
+## Error Analysis & Evaluation
+
+### Export Errors (FP/FN)
+Find false positives and false negatives for manual review:
+
+```bash
+python src/export_errors.py --in data/raw/dataset.csv
+# Output: reports/errors_fp_fn.csv
+# - bad→good = False Positive (FP)
+# - good→bad = False Negative (FN)
 ```
-Skim for patterns: repetition, filler, crawler noise, very short/long texts, etc.
+
+Look for patterns: repetition, filler, crawler noise, very short/long texts, etc.
+
+### Evaluate on Validation Set
+Test different thresholds on validation set:
+
+```bash
+python src/eval_valid.py --model models/song_lr_v2_plus_20251026.joblib --split valid
+# Output: reports/valid_threshold_scan.csv
+```
+
+### Check for Overfitting
+
+**Test first N songs from dataset:**
+```bash
+python scripts/test_first_20_songs.py --model models/song_lr_v2_plus_20251026.joblib --num_songs 40 --check-splits
+# Tests first 40 songs, shows accuracy by split (train/valid/test)
+# Output: reports/first_20_songs_test.csv
+```
+
+**Test entire dataset:**
+```bash
+python scripts/test_full_dataset.py --model models/song_lr_v2_plus_20251026.joblib --dataset data/raw/dataset.csv
+# Tests all songs in dataset, analyzes overfitting by split
+# Output: reports/full_dataset_test.csv
+```
 
 ---
 
-## (Optional) Transcribe audio → lyrics (Whisper)
-For building your corpus from battle videos or MP3s.
-```powershell
-python .\src\batch_whisper_lyrics.py `
-  --input  "C:\path\to\audio_or_video_folder" `
-  --output "data\lyrics" `
-  --model  large-v3 `
-  --device cuda `
+## (Optional) Transcribe Audio → Lyrics
+
+For building your corpus from battle videos or MP3s using Whisper.
+
+```bash
+python src/batch_whisper_lyrics.py \
+  --input  "/path/to/audio_or_video_folder" \
+  --output "data/transcribed_lyrics" \
+  --model  medium \
+  --device cpu \
   --language en
 ```
-Then clean (`clean_lyrics.py`) and ingest (`ingest_txt.py`).
+
+**Model options:**
+- `medium` - ⭐ **Default** - Good balance of speed and quality
+- `large-v3` - Best quality but slower (requires more memory)
+
+> **Note**: `base` and smaller models produce poor transcription quality and are not recommended.
+
+**Then:**
+1. Clean: `python clean_lyrics.py data/transcribed_lyrics`
+2. Ingest: `python src/ingest_txt.py --root data/transcribed_lyrics --out data/raw/dataset.csv --id_style fname`
+
+> **Note**: After transcription, you can move cleaned files to `data/raw_txt/good/` or `data/raw_txt/bad/` for organization.
 
 ---
 
@@ -195,49 +357,126 @@ Then clean (`clean_lyrics.py`) and ingest (`ingest_txt.py`).
 
 ---
 
-## Quick cheat sheet
-```powershell
-# activate
-cd "C:\Users\<you>\Desktop\rap-judge"
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-py -3.11 -m venv .venv; .\.venv\Scripts\Activate.ps1
+## Quick Cheat Sheet
+
+### Setup
+```bash
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Mac/Linux
+# or: .venv\Scripts\Activate.ps1  # Windows
+
+# Install dependencies
 pip install -r requirements.txt
+```
 
-# TXT -> CSV
-python .\src\ingest_txt.py --root data\raw_txt --out data\raw\dataset.csv --id_style fname
+### Data Pipeline
+```bash
+# Clean lyrics (removes ads, artifacts)
+python clean_lyrics.py data/raw_txt
 
-# split
-python .\src\split_data.py --in data\raw\dataset.csv --seed 42
+# TXT folders -> CSV
+python src/ingest_txt.py --root data/raw_txt --out data/raw/dataset.csv --id_style fname
 
-# train
-python .\src\train_baselines.py --in data\raw\dataset.csv --seed 42
+# Create fixed splits
+python src/split_data.py --in data/raw/dataset.csv --train 0.8 --valid 0.1 --test 0.1 --seed 42
+```
 
-# predict (file; no lyrics in output)
-$model = (Get-ChildItem .\models\song_lr_v1_*.joblib | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
-python .\src\predict_file.py --model "$model" --file "C:\path\to\song.txt" --th_good 0.60
+### Training
+```bash
+# Train baselines (NB + LR v1)
+python src/train_baselines.py --in data/raw/dataset.csv --seed 42
 
-# explain
-python .\src\explain_file_v2.py --model "$model" --file "C:\path\to\song.txt" --th 0.50 --top 12
+# Train LR+ (v2_plus - recommended, better performance)
+python src/train_lr_plus.py --csv data/raw/dataset.csv --seed 42
+```
 
-# export mistakes
-python .\src\export_errors.py --in data\raw\dataset.csv
+### Judging/Prediction (Choose based on your needs)
+
+**🎤 Interactive Mode (Best for pasting lyrics):**
+```bash
+python src/analyze_song.py --model models/song_lr_v2_plus_20251026.joblib --interactive
+```
+
+**⚡ Quick Judge (Simple text):**
+```bash
+python judge.py "Your lyrics here"
+```
+
+**📊 Detailed Analysis (File or text with full report):**
+```bash
+python src/analyze_song.py --model models/song_lr_v2_plus_20251026.joblib --file lyrics.txt --lines
+```
+
+**🔍 Simple Prediction (Just result):**
+```bash
+python src/predict_file.py --model models/song_lr_v2_plus_20251026.joblib --file lyrics.txt
+```
+
+### Analysis & Evaluation
+```bash
+# Explain prediction (feature contributions)
+python src/explain_file_v2.py --model models/song_lr_v2_plus_20251026.joblib --file lyrics.txt --th 0.50 --top 12
+
+# Export errors (FP/FN analysis)
+python src/export_errors.py --in data/raw/dataset.csv
+
+# Evaluate on validation set
+python src/eval_valid.py --model models/song_lr_v2_plus_20251026.joblib --split valid
+
+# Test first N songs for overfitting check
+python scripts/test_first_20_songs.py --model models/song_lr_v2_plus_20251026.joblib --num_songs 40 --check-splits
 ```
 
 ---
 
-## Troubleshooting (Windows)
-- **“No suitable Python runtime found”** → Install Python 3.11, then run `py -3.11 -m venv .venv` again.
-- **Unicode boxes/garbage** → enable UTF‑8 (see Setup) and ensure your `.txt` files are UTF‑8.
-- **GPU Whisper stalls** → try `--device cpu` or smaller models; close other GPU apps.
-- **Very imbalanced data** → add more from the minority class or use stricter `--th_good`.
+## Model Selection
+
+**Available Models:**
+- `song_lr_v1_*.joblib` - Baseline Logistic Regression (TF-IDF only)
+- `song_lr_v2_plus_*.joblib` - ⭐ **Recommended** - Enhanced LR with word+char n-grams + stats
+- `song_nb_v1_*.joblib` - Baseline Multinomial Naive Bayes
+
+**Which to use?**
+- **For best performance**: Use `song_lr_v2_plus_*.joblib` (v2_plus models)
+- **For simple predictions**: Any model works, but v2_plus is more accurate
+- **Auto-selection**: `judge.py` automatically selects the latest v2_plus model
+
+**Note:** v2_plus models require the `feats_extra.py` module. Scripts automatically handle this.
 
 ---
 
-## What’s new in v2
-- Fixed **clean_lyrics.py** usage and location (root-level, `python .\clean_lyrics.py <file_or_folder>`; auto-writes `*.clean.txt`).
-- Removed non-existent **K-fold** / **Bootstrap** CLI flags from `split_data.py` (only fixed ratios are supported).
-- Expanded **Repo layout** to include utility scripts actually present in this repo.
-- Kept baseline training/prediction instructions the same.
+## Troubleshooting
+
+### General Issues
+- **"No suitable Python runtime found"** → Install Python 3.11+, then recreate venv
+- **Unicode boxes/garbage** → Ensure `.txt` files are UTF‑8 encoded
+- **ModuleNotFoundError: feats_extra** → Scripts should auto-handle this, but if it persists, ensure `src/` is in Python path
+- **Very imbalanced data** → Add more from minority class or use stricter `--th_good` threshold
+
+### Windows-Specific
+- **PowerShell execution policy** → Run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+- **Path separators** → Use backslashes `\` in PowerShell, forward slashes `/` in bash
+
+### Model Issues
+- **GPU Whisper stalls** → Try `--device cpu` or smaller models; close other GPU apps
+- **Version warnings** → scikit-learn version mismatches are usually harmless (model was trained with older version)
+
+---
+
+## What's New
+
+### Latest Updates
+- 🎤 **Interactive Mode**: `analyze_song.py --interactive` - paste lyrics directly, handles any special characters
+- ⚡ **Quick Judge**: `judge.py` - simple command-line judge with auto model selection
+- 📊 **Enhanced Analysis**: `analyze_song.py` - detailed quality scores, feature contributions, line-by-line analysis
+- 🧹 **Improved Cleaning**: Better removal of transcription artifacts and ads
+- ✅ **Overfitting Check**: `scripts/test_first_20_songs.py` - test model performance on dataset songs
+
+### Previous Updates (v2)
+- Fixed **clean_lyrics.py** usage and location (root-level, auto-writes `*.clean.txt`)
+- Removed non-existent **K-fold** / **Bootstrap** CLI flags from `split_data.py`
+- Expanded **Repo layout** to include utility scripts actually present in this repo
 
 ---
 
@@ -286,7 +525,7 @@ reports/**
 
 # Raw text & audio (keep only small samples under a separate sample dir if needed)
 data/raw_txt/**
-data/lyrics/**
+data/transcribed_lyrics/**
 *.mp3
 *.wav
 *.flac

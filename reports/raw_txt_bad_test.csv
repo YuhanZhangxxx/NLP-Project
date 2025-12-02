@@ -1,0 +1,595 @@
+file,id,true_label,pred_first20,p_good_first20,p_bad_first20,correct_first20,first_20_lines,pred_full,p_good_full,p_bad_full,correct_full
+100 WAYS.clean.txt,100 WAYS.clean,bad,bad,0.2592904873736482,0.7407095126263519,True,"﻿[Intro]
+Pop out, lit
+Most these niggas pussy, I don't get it (That's a fact)
+Why the fuck they act like they with it? (They ain't with shit)
+Up it, I'ma click it, big 50 round on my blicky (Ride it)
+...",bad,0.25489318997776356,0.7451068100222364,True
+100WAYS.clean.txt,100WAYS.clean,bad,bad,0.2745650285681574,0.7254349714318427,True,"﻿(Pop out, lit)
+Most of these niggas pussy, I don't get it (that's a fact)
+Why the f*ck they act like they with it? (Ain't with shit)
+Up it I'ma click it, big 50 ridin' my blicky (ride it)
+You know yo...",bad,0.2677984235396207,0.7322015764603793,True
+2 Diccs.clean.txt,2 Diccs.clean,bad,bad,0.25241653737359326,0.7475834626264067,True,"﻿2 Diccs - Blueface
+Lyrics
+About
+Comments
+Sign Up
+Search lyrics & more
+Cover art for 2 Diccs by Blueface
+2 Diccs
+Blueface
+Featuring
+YBN Nahmir
+Producers
+Extendo Beats, Mike Crook & 1 more
+Track 16 on
+...",bad,0.2511873180686681,0.7488126819313319,True
+25 Drop.clean.txt,25 Drop.clean,bad,bad,0.24017604067421,0.75982395932579,True,"﻿[Intro]
+Soulja Boy Tell 'Em
+Y'all, y'all, y'all
+Yeah, nigga, don't play with the money game
+Don't play with the M.S.O.D. boys, drink up
+Yuh, someone nigga on running the block
+Young nigga, he cool wi...",bad,0.36403606461059784,0.6359639353894022,True
+27 CLUB.clean.txt,27 CLUB.clean,bad,bad,0.15405982989076902,0.845940170109231,True,"﻿[Verse 1]
+I can show you how it feels
+When you lose what you love (When you lose)
+When the world seems like its against you
+When your friends and family forget you
+It ain't really hard to convince yo...",bad,0.16898805309045856,0.8310119469095414,True
+27CLUB.clean.txt,27CLUB.clean,bad,bad,0.15405982989076902,0.845940170109231,True,"﻿[Verse 1]
+I can show you how it feels
+When you lose what you love (When you lose)
+When the world seems like its against you
+When your friends and family forget you
+It ain't really hard to convince yo...",bad,0.16898805309045856,0.8310119469095414,True
+2Coccs.clean.txt,2Coccs.clean,bad,bad,0.2184531453361593,0.7815468546638407,True,"﻿I'm in the party with my Glock (bop)
+She getting freaky 'cause she grinding on two cocks (two dicks)
+Weed got me high and this Henny got me drunk (got me drunk)
+Blow dryer on me case a nigga need his...",bad,0.2981067180394878,0.7018932819605121,True
+2Diccs.clean.txt,2Diccs.clean,bad,bad,0.12182793598976242,0.8781720640102376,True,"﻿[Intro: Blueface]
+Blueface, baby
+(Low the Great)
+Yeah, aight
+It's hard to dance with two dicks, bitch, I boogie
+(Cállate, Mike Crook)
+It's hard to dance with two dicks, bitch, I boogie (Bitch, I boog...",bad,0.22543555816592986,0.7745644418340701,True
+3333.clean.txt,3333.clean,bad,bad,0.2834834042262316,0.7165165957737685,True,"﻿intro
+Hey Soulja, everything lit, it′s S.O.D.M.G.
+verse
+Diamonds on my neck, yeah, I'm high off the bag
+Renting all that check, yeah, I got them legal mags
+Double R with Rolls, Russian Crystals in th...",bad,0.3479016014480461,0.652098398551954,True
+ACCESSIBLE.clean.txt,ACCESSIBLE.clean,bad,bad,0.29193848445699205,0.7080615155430079,True,"﻿Yeah, yeah
+Yeah, yeah
+You're way too accessible
+And that's not acceptable
+So I'm gonna have to let you go
+(You're just too)
+You're way too accessible
+And that's not acceptable
+So I'm gonna have to le...",bad,0.41774484922515814,0.5822551507748419,True
+Aint Worried.clean.txt,Aint Worried.clean,bad,bad,0.2496431688689429,0.7503568311310571,True,"﻿Pull up in a lounge truck, M.O.I., stoop, let's do it
+Pull up with a bad bitch, and a booty stoop, yo
+Racks and them pounds, nigga, the bands, we broke through
+We ain't worried bout no bulletproof, w...",bad,0.33481535121854067,0.6651846487814593,True
+Art Of War.clean.txt,Art Of War.clean,bad,bad,0.3585714195790889,0.6414285804209111,True,"﻿[Verse 1:]
+My enemies meet the hand of the lord g's
+My skin tougher than that african from warri
+Hating ass niggas I ain't sweating these fools
+Coastal air let the jet refuel
+You love my stunts, proc...",bad,0.39475782938571596,0.6052421706142841,True
+Attitude.clean.txt,Attitude.clean,bad,bad,0.320577276618829,0.6794227233811709,True,"﻿It's like me and you
+Me and my mans and your girlfriends too
+After tonight I'ma only visit you when the moon is blue
+Is that your man right there? What he doin' with you?
+Sayin' talk to the hands, is...",good,0.5212586167663282,0.47874138323367177,False
+BUDDY.clean.txt,BUDDY.clean,bad,bad,0.13257871582835423,0.8674212841716458,True,"﻿(Ayo, Model, that shit fire though)
+We ready to drill
+Hop out the Mas' and we pop at the block
+Yeah, pop at the block
+Making it pop with sticks and they drop
+Yeah, I'm havin' 'em drop
+I'ma spin it on...",bad,0.21869767780059063,0.7813023221994093,True
+BURNING BRAINS.clean.txt,BURNING BRAINS.clean,bad,bad,0.2045331808604264,0.7954668191395736,True,"﻿Drivin' me insane
+All you do is complain
+Headache, my brain, mass explosions
+Soup too hot, ice too cold
+Grass too green, sky too blue
+Ha, ha, ha
+You're never satisfied (satisfied)
+Can't love you, I t...",bad,0.20462631123425043,0.7953736887657495,True
+Bleed It.clean.txt,Bleed It.clean,bad,bad,0.16826908786390074,0.8317309121360993,True,"﻿Pull up on your block, then I bleed it
+Cállate, mike crook
+Blueface, baby
+Yeah aight
+Pull up on your block, then I bleed it
+Pull up on your block, then I bleed it (bleed it)
+Slidin', if I don't drop ...",bad,0.2961300589922449,0.7038699410077551,True
+Bleed the Chicken.clean.txt,Bleed the Chicken.clean,bad,bad,0.14304840494752952,0.8569515950524704,True,"﻿Blueface, baby
+Yeah, aight
+Aight, Hmm
+Hm, bitch, make me bust fast
+Ass fat
+All that clappin', I'm trained to bust back (On the set)
+Hm, nigga, say it's beef
+Leave him with ketchup and taco shells, wh...",bad,0.28621902072167854,0.7137809792783214,True
+Bullets Whistle.clean.txt,Bullets Whistle.clean,bad,bad,0.32955450887395193,0.670445491126048,True,"﻿My Bullets whistle like
+And Fly right pass ya dome
+My Bullets whistle like
+A Hundred shots a nigga gone
+My Bullets whistle like
+I got that Typewriter tommy gun just like Capone
+My Bullets like
+6 feet...",bad,0.38559394659162316,0.6144060534083768,True
+Bussdown.clean.txt,Bussdown.clean,bad,bad,0.21163573779257794,0.7883642622074221,True,"﻿Oooh
+Blueface baby (Blueface baby)
+Yeah, aight
+Oooh, oooh, oooh, oooh
+Used to ride the bus down (Skrr)
+Now I wear a Bussdown (Ice)
+I just made six like a touchdown
+I need it all when I touch down
+Use...",bad,0.3851407451995685,0.6148592548004315,True
+Bussin.clean.txt,Bussin.clean,bad,bad,0.09051192393620885,0.9094880760637911,True,"﻿Blueface, baby
+(Callate, Mike Crook)
+Yeah, aight
+You slippin', I'm slidin', bussin' (bussin')
+Bussin'
+New AP, bussin' like AP (bussin')
+No wings, but this is a 8-piece AP (bussin')
+No SI, these VV's ...",bad,0.1562556288687975,0.8437443711312025,True
+CHANEL PIT.clean.txt,CHANEL PIT.clean,bad,bad,0.28246009610995854,0.7175399038900414,True,"﻿Mhm, mosh pit smell like Chanel, hm
+Yes, Microsoft, I'ma excel, hm
+Mhm, nine, ten, eleven, fuck 12, hm
+Yes, your house lookin' like a motel, yes
+Oh, I don't play fair, well
+Mhm, I don't like to show ...",bad,0.3522033794480674,0.6477966205519325,True
+Curious.clean.txt,Curious.clean,bad,bad,0.3064596446670908,0.6935403553329091,True,"﻿[Tony Yayo (talking with girl)]
+I'm sayin wat's your name?
+(My name is Kay)
+Where you from?
+(I'm from Brooklyn)
+I'm sayin so why you wit that bird over there?
+Now I don't wanna sound like a hater
+(Be...",good,0.5489686453268315,0.45103135467316846,False
+Curvy.clean.txt,Curvy.clean,bad,bad,0.2281019176720051,0.7718980823279948,True,"﻿It's The Plug (Plug)
+JAY1, JAY1, just did it with sauce
+JAY1, JAY1, just did it with sauce
+Listen (woo)
+Look at that browning, lookin' all curvy (all curvy)
+Figure eight and the back come perky
+JAY1,...",bad,0.41018877148923183,0.5898112285107682,True
+DIFFICULT.clean.txt,DIFFICULT.clean,bad,bad,0.2297094734244646,0.7702905265755354,True,"﻿I can't sleep, I can't eat
+I feel small, so petite
+I act strong, but I'm weak
+Ha, ha, ha, ha (livin' is difficult)
+I was born to survive
+See the pain in my eyes
+I been stressed and deprived
+Ha, ha, h...",bad,0.31147384967067027,0.6885261503293297,True
+Daddy.clean.txt,Daddy.clean,bad,bad,0.1607100706492511,0.8392899293507489,True,"﻿Blueface baby
+Yeah aight
+Callate, Mike Crook
+I'm her daddy, I don't even know her mama
+Ooh
+She call me daddy, I don't even know her mama (ooh)
+She gon' do it for some Dolce Gabbana
+Louis, Gucci, Fend...",bad,0.2715376815382706,0.7284623184617294,True
+Dear Suzie.clean.txt,Dear Suzie.clean,bad,bad,0.3763842017256643,0.6236157982743358,True,"﻿Aye yo Fif' (yeah)
+Yo Fif', I got this letter from this girl (word?)
+Finna write her back man
+I'm a tell you what I told her though (what you said?)
+Listen
+Dear Suzie, dear Suzie, I appreciate the fa...",good,0.5442468814413506,0.4557531185586494,False
+Dipset.clean.txt,Dipset.clean,bad,bad,0.2760955044484735,0.7239044955515265,True,"﻿Soulja boy I tell em, yo
+Shhh Nigga Draco Draco (Draco Draco)
+(Grrrr) gang, let's do it
+I put them birds all in the trap
+Y'all nigga pull up in the lamb
+I'm having 90 threads out of bags
+Def in gloss...",bad,0.34620511076797483,0.6537948892320251,True
+Dirty.clean.txt,Dirty.clean,good,bad,0.18382448352081385,0.8161755164791862,False,"﻿D.A got that dope!
+The house so big, it's hard to get dirty
+Don't be mad at me, your birdie was thirsty (brr)
+So many holes, he look like a jersey (raow)
+Pew-pew-pew, body drop like a burpee
+The hous...",bad,0.24225922160335792,0.7577407783966421,False
+Dont Chase Me.clean.txt,Dont Chase Me.clean,bad,bad,0.15661866536565933,0.8433813346343406,True,"﻿Blueface, baby
+Yeah, aight
+Bitch chase me, I'm a man
+Don't chase me, baby, chase the henny
+Up it, up it
+Up it
+Holiday
+What's the deal, lil' baby?
+Change if I want, you can't change me
+Chase the liquo...",bad,0.2360769319583675,0.7639230680416325,True
+Drama Setter.clean.txt,Drama Setter.clean,bad,bad,0.3285471131964345,0.6714528868035655,True,"﻿[Intro]
+[Guard:] Mr. Yayo, your free to go, so I guess this means I'll see you tomorrow
+[Eminem:] Guess who's home? Tony Yayo, Obie Trice, C'mon!
+I'm a Drama Setter, gripping my baretta sipping Armar...",good,0.6016430472446906,0.39835695275530936,False
+Eastside Westside.clean.txt,Eastside Westside.clean,bad,bad,0.3047124344744961,0.695287565525504,True,"﻿This that gangster shit (uh-huh)
+This that rider shit (uh-huh)
+This that gangster shit (uh-huh)
+This that rider shit
+I got killers on the Eastside and killers on the Westside
+Down South niggaz they f...",bad,0.3952174493559672,0.6047825506440327,True
+Eliantte.clean.txt,Eliantte.clean,bad,bad,0.24261123736962623,0.7573887626303738,True,"﻿This is Globe
+Eliantte, Eliantte, Eliantte, Eliantte, Eliantte, Eliantte, Eliantte
+Diamonds bussin' on the runway
+Diamonds closed like the inside of an igloo
+I flew the jet out Sunday in that Leo Mon...",bad,0.23239070218324137,0.7676092978167586,True
+FAH.clean.txt,FAH.clean,bad,bad,0.19013636311540574,0.8098636368845943,True,"﻿And this ain't no semi-auto' stick (fully auto')
+This shit got a switch
+Pop out of the cut and we gon' let that shit flick (yeah, nigga)
+Frrt (let that shit blitz, ayy)
+(Rollin' with a 30 and let it ...",bad,0.22362046463450896,0.776379535365491,True
+FEEFAFO.clean.txt,FEEFAFO.clean,bad,bad,0.2909549613322069,0.7090450386677931,True,"﻿I've been rollin' in the six feet
+Rockstar like feefafo
+And I'm high like E.T
+I don't need no U-F-O
+Ass fat, rakishi
+Run through it like Usain Bolt
+Yeah, I'm drippin' in the VV's
+You know you comin' ...",bad,0.3149499721340199,0.6850500278659801,True
+Feelin Freaky.clean.txt,Feelin Freaky.clean,bad,bad,0.343649948573267,0.6563500514267331,True,"﻿Yo put the kids to bed
+Yo Shawty, I know you ain't scared
+B2k and Nick Cannon
+Track masters, the Pied Piper
+Yo' the freaks come out at night
+I'm like Houdini with the magic stick
+When you turn out th...",good,0.5257956186169674,0.47420438138303256,False
+First Class.clean.txt,First Class.clean,bad,bad,0.2560137678920997,0.7439862321079003,True,"﻿Fbeat producing all the heat
+Blueface baby, yeah, 'aight
+First class what I spent on the shoes
+Baguettes guaranteed I'm getting this boo
+Ooh-ooh baby blow it like soup
+I'm so hot I get paid to be coo...",bad,0.4169452236077961,0.5830547763922038,True
+First Million.clean.txt,First Million.clean,bad,bad,0.18067821327910924,0.8193217867208907,True,"﻿Nigga, Draco (Brr)
+Uh-huh (Ayy)
+Y'all know what the fuck goin' on
+Uh, uh-huh (Gang)
+Gang, uh, young nigga pull up in the Bentley (Uh-huh)
+Word through the city, Draco got millions
+2024, Ferrari truck...",bad,0.19119980994810154,0.8088001900518984,True
+G-Shit.clean.txt,G-Shit.clean,bad,bad,0.2819773796187644,0.7180226203812357,True,"﻿Yeah, yeah (c'mon!)
+These rich sluts love me like I'm Morris Chestnutt
+They hit me on the 2-way, beggin to link up
+My wrist is blinged up, canary and blue
+For them project chicks, that be actin new
+I...",bad,0.41670365526349107,0.5832963447365089,True
+GLock.clean.txt,GLock.clean,bad,bad,0.23570552319586657,0.7642944768041334,True,"﻿A-a-ayo, Mauro, that shit fire though (look)
+I got a whole lotta opps, I bought a brand-new stick
+Tell 'em get in line, tell 'em suck a whole dick
+I won't even spin, get my lil' niggas that check
+How...",bad,0.2451423295495225,0.7548576704504775,True
+GOOO.clean.txt,GOOO.clean,bad,bad,0.17009030470229106,0.829909695297709,True,"﻿He tough on the app, in person he copped it, yeah
+I'm real, like, fuck all treesh and boppers, yeah
+I'm Batman, yeah, might switch into Robin, yeah (bop-bop-bop-bop)
+Whatever you jackin', nigga, I dr...",bad,0.20066752949608452,0.7993324705039155,True
+Get Crunk Shorty.clean.txt,Get Crunk Shorty.clean,bad,bad,0.3329494503457576,0.6670505496542424,True,"﻿Going, going, going, going, going
+Just blaze, oh oh oh oh
+Hands up now, move them up now
+Hands up now, move them up now
+Hands up now, move them up now
+Hands up now, move them up now
+Hands up now, mov...",good,0.5130612018785538,0.48693879812144625,False
+Get That Money.clean.txt,Get That Money.clean,bad,bad,0.2760654109822573,0.7239345890177427,True,"﻿Yo, yeah huh, ain't know what's going on
+Yeah, you know what's going on (yeah)
+Stay some day, money gang
+Trego crazy, Trego stupid, Trego fucking dumb yea
+Get to that money, stacking on racks, nigga,...",bad,0.34817710897873244,0.6518228910212676,True
+Gfym.clean.txt,Gfym.clean,bad,bad,0.2324905162989943,0.7675094837010057,True,"﻿[Intro: Trendd]
+Bitches off the Instagram, I'm tryna get near you
+But bitch, your service weak as fuck, I can't even hear you
+Hello? Can't even hear you
+Hello?
+Get it from your mom
+Get it from your m...",bad,0.39539465569050763,0.6046053443094923,True
+Gigolo.clean.txt,Gigolo.clean,bad,bad,0.29558044448415716,0.7044195555158428,True,"﻿Oh (oh), oh, oh, oh (uh), oh (Cannon Ball)
+Oh (check it out), oh (Kels)
+Oh, oh, oh (yo, nigga, we in the club singing this for money, ha!)
+I'm a gigolo, spending lot's a dough (uh-huh)
+You can tell t...",bad,0.4675407896076596,0.5324592103923405,True
+Holy Moly.clean.txt,Holy Moly.clean,bad,bad,0.18177884841345757,0.8182211515865424,True,"﻿(This is a Holy Moly Donut Shop, ah?
+Say it with me, guys, ""Holy Moly Donut Shop"")
+Holy Moly Donut Shop
+Holy moly, .40 leave him like a donut (holy moly)
+Pull up and shoot like Ginóbili (Ginóbili)
+Ca...",bad,0.20945879501959644,0.7905412049804036,True
+Homicide.clean.txt,Homicide.clean,bad,bad,0.36630990302365857,0.6336900969763415,True,"﻿[Intro: Tony Yayo]
+Turn me up in them fuckin headphones real quick man
+I'm finna body this track
+And body a nigga when I get the fuck outta here man
+Cocksucker this ain't rap, check my rap sheets
+I f...",good,0.5217772960478072,0.4782227039521928,False
+Horror Movie.clean.txt,Horror Movie.clean,bad,bad,0.3620741371185956,0.6379258628814044,True,"﻿[Verse 1:]
+My mic is like transparent poison
+Drop top phantom with them hoes in
+See I'm lookin and I'm smellin like making millions
+Got the god seein paper filled with tabor filling
+And when the sour...",bad,0.3714425143091581,0.6285574856908419,True
+I Got Clientele.clean.txt,I Got Clientele.clean,bad,bad,0.33080353957854514,0.6691964604214549,True,"﻿Ya, drug
+Ya (ay-ay)
+Game (game)
+Ask about me in the streets, they gon' tell ya nigga (huh)
+If you know I did some shit, just don't tell the nigga (ya)
+Yeah, you came back but you fail, nigga
+West sid...",bad,0.3695439711036641,0.6304560288963359,True
+I Just Want To Get Away.clean.txt,I Just Want To Get Away.clean,bad,bad,0.28514813871959765,0.7148518612804023,True,"﻿Yeah, yeah, yeah
+Yeah, yeah, yeah, ah, yeah
+Take me to Hawaii, take me Honolulu
+I be on a island, I just wanna get away
+All my diamonds shining, I be on a jet ski
+Skrrting off slime
+Take me out to Me...",bad,0.2906012279079979,0.7093987720920021,True
+I Owe You.clean.txt,I Owe You.clean,bad,bad,0.3699371155597856,0.6300628844402144,True,"﻿Uh this real (its you that i owe)
+I owe you (said i owe you)
+They say the ones you take for granted
+You miss the most
+Woke up every mornin to grits and toast
+School clothes spread
+At the foot of the ...",good,0.595181667532396,0.404818332467604,False
+I Used To Be In Love.clean.txt,I Used To Be In Love.clean,bad,bad,0.3965279398165894,0.6034720601834106,True,"﻿Wooh, yeah, can I ball?
+You don't have to do me like that ma
+Nick Cannon
+You almost had me
+But my inner pimp wouldn't let that happen, you dig?
+Know this chick named Tanya, down form East Yonkers
+Had...",good,0.65786385776228,0.34213614223772004,False
+IMAGINARY FRIENDS.clean.txt,IMAGINARY FRIENDS.clean,bad,bad,0.4163896995071319,0.5836103004928681,True,"﻿Yeah
+Uh-huh
+Yeah
+We argue today, but we gon' talk tomorrow
+They say they don't like you, they know who you are though
+Bankin' on our downfall, take me to Wells Fargo
+You my favorite album, call you p...",bad,0.4865462754642855,0.5134537245357145,True
+INVITATION.clean.txt,INVITATION.clean,bad,bad,0.29971878514065603,0.700281214859344,True,"﻿I mean, I've heard a couple songs
+Like, they're pretty, I don't know
+Take it, leave it, trash it
+Um, I'm just not like a fan, more like air conditioner
+Yeah
+Whatever I do, you gon' do it just like it...",bad,0.344555744876832,0.6554442551231681,True
+Im Big Draco.clean.txt,Im Big Draco.clean,bad,bad,0.24045936271152699,0.759540637288473,True,"﻿Yeah
+Huh? Huh?
+Huh? Yeah, uh, uh
+Big watch, big clothes (yo)
+Bad, uh, uh
+Bad hoe (gang)
+Hunnid shots (shots)
+How that go? (Oh)
+Big what?
+I'm big Draco (big Draco)
+Slidin' through the cut
+50 shots, yo...",bad,0.31071963230678473,0.6892803676932153,True
+Im So High .clean.txt,Im So High .clean,bad,bad,0.4359682213271548,0.5640317786728453,True,"﻿[Hook:]
+I'm so high, so high
+So high I can't come back to reality, reality
+I'm so high, so high
+So high I can't come back to reality, reality
+Remember back y'all carly said, have us
+Fat Troy on a gir...",good,0.5349826122708297,0.46501738772917034,False
+In Love With A Bad Bitch.clean.txt,In Love With A Bad Bitch.clean,bad,bad,0.1580946625245038,0.8419053374754962,True,"﻿Yeah, you do it
+Not a space ship
+Hmm, yeah
+I'm in love with a bad bitch (bad bitch, bad bitch)
+I'm in love with a bad bitch (bad bitch, bad bitch)
+I'm in love with a bad bitch (bad bitch, bad bitch)
+...",bad,0.21486122585119752,0.7851387741488025,True
+In The Zone.clean.txt,In The Zone.clean,bad,bad,0.17778078715116333,0.8222192128488367,True,"﻿Blueface, baby
+(I'm in the zone)
+Yeah, aight
+I'm in the zone, can't come to the phone
+I did it on my own
+I don't need no shooter
+I been trappin' with bazooka (I been trappin' with bazooka)
+Put a blow...",bad,0.29301606744304115,0.7069839325569589,True
+It Is What It Is.clean.txt,It Is What It Is.clean,bad,bad,0.32522554479699695,0.674774455203003,True,"﻿[Chorus]
+22's on the Porsche drugs Henny in the fridge
+Dat's how we live it is wut it is
+We run up in your crib snatchin kids in your wiz
+We know where you live it is wut it is
+If we can't eat then y...",good,0.5112527267318373,0.4887472732681627,False
+King Of The Pyrex.clean.txt,King Of The Pyrex.clean,bad,bad,0.32381370546181437,0.6761862945381856,True,"﻿[Chorus:]
+Street manuscript, cocaine analyist
+King of the pyrex I whip it up and hit a lick
+I whip the pyrex and I hit a lick
+I whip the pyrex and I hit a lick
+I ain't a chef I can show you how to sp...",bad,0.3759059129981959,0.6240940870018041,True
+Love My Style.clean.txt,Love My Style.clean,bad,bad,0.2499552774815757,0.7500447225184244,True,"﻿[chorus]
+these hoes dont love me, they love my benz, love my rims, love my style,
+these fiends dont love me, they love my coke, love my dope, love my ink,
+these haters dont love me, it dont matter to...",bad,0.37605722699091815,0.6239427730090819,True
+MOOD SWING.clean.txt,MOOD SWING.clean,bad,bad,0.3211939207859288,0.6788060792140712,True,"﻿I been trying new things
+Mama said she tired of my mood swings
+Before I leave the house, I grab a few things
+Check the scoreboard, ho, you're losing
+I used to cry for meals
+The devil offered a deal
+T...",bad,0.31027189151369117,0.6897281084863088,True
+MOOVIES.clean.txt,MOOVIES.clean,bad,bad,0.2796741339338453,0.7203258660661547,True,"﻿You never take me to the movies
+Take me to eat, I'm a foodie, boy, enjoy
+You never take me to the movies
+Take me to eat, I'm a foodie, boy, enjoy, yeah
+Larry took me to see something scary
+Maybe we c...",bad,0.32662787278258937,0.6733721272174107,True
+MS BEHAVE.clean.txt,MS BEHAVE.clean,bad,bad,0.22516820452365816,0.7748317954763418,True,"﻿I could never behave
+Oh, but I'ma be late
+I could never behave
+They're watching us, no stoppin'
+I leave 'em with no option (oh, but I'ma be late)
+They're watching, no stoppin'
+I leave 'em with no opt...",bad,0.31407739426047376,0.6859226057395262,True
+Main Girl.clean.txt,Main Girl.clean,bad,bad,0.3340100445750351,0.6659899554249649,True,"-O-N (I'll make you mine)
+Can I be your main girl? (Of course you can)
+Can I be the one for you (Uh, it's Nick Cannon)
+Can I be your main girl? (Of course you can)
+Let me be the one,
+you believe in (H...",good,0.5694326795016565,0.43056732049834345,False
+More Money More Problems.clean.txt,More Money More Problems.clean,bad,bad,0.24161724684445826,0.7583827531555417,True,"﻿Yeah, yeah, uh
+Yeah
+Draco, uh
+Huh, more money, more problems (more problems)
+Uh, more money, more problems (more problems)
+Uh, more money, more problems (more problems)
+Uh, more money, more problems ...",bad,0.30470991615670867,0.6952900838432914,True
+Movie Scenes.clean.txt,Movie Scenes.clean,bad,bad,0.20420504726055932,0.7957949527394407,True,"﻿Too Raw
+Blueface baby (yeah)
+Aight...
+Ooo...It's a clip full of movie scenes
+Ooo...It’s a clip full of movie scenes
+Ooo...It's a clip full of movie scenes
+Ooo...It's a clip full of movie scenes
+Used ...",bad,0.2583123904550784,0.7416876095449216,True
+Murder Rate.clean.txt,Murder Rate.clean,bad,bad,0.23790314039770663,0.7620968596022933,True,"﻿I done lost 8K at the telly, was gone off the Xannys, I took about three nap
+Out in Malibu cappin' off X, and I crashed the i8, I just hope I don't relapse
+That lil' nigga ain't livin' what he rap
+Wh...",bad,0.32041422876516973,0.6795857712348303,True
+Murder.clean.txt,Murder.clean,bad,bad,0.33628867535558626,0.6637113246444137,True,"﻿[Uncle Murda:]
+Ohhhh
+Yayo what up nigga
+Murda what's good
+I'm murdering this motherfucker
+This is the remix
+G-unit whattup
+50, banks whattup
+G.m.g
+G-unit
+Southside whattup
+Queens
+Fuck all the talking...",bad,0.438582966099415,0.5614170339005851,True
+My Mic.clean.txt,My Mic.clean,bad,bad,0.27129608050220777,0.7287039194977922,True,"﻿Nick Cannon
+(You know, you know, you know)
+Nick Cannon
+(Be funky)
+Nick Cannon
+(Nick Cannon around)
+Biz Markie
+(You know, you know, you know)
+(You know, you know, you know)
+Nick Cannon
+(Biz Markie)
+Ge...",bad,0.4146625005603962,0.5853374994396038,True
+My Rib.clean.txt,My Rib.clean,bad,bad,0.22869596669817105,0.771304033301829,True,"﻿Uh can I ball?
+yeah can I ball?
+uh can I ball?
+This is to every female that's ever been in my life
+Flesh of my flesh bone of my bone (I feel you playboy)
+Dust to dust uh (for real)
+My rib, my wiz, my...",bad,0.393586072643536,0.6064139273564639,True
+NADA.clean.txt,NADA.clean,bad,bad,0.26503885055042486,0.7349611494495751,True,"﻿Uh
+Are you dumb?
+No, really?
+Bitch, are you dumb? Who you playing with? You know I ain't the one
+All these bitches playing games, man, I do this shit for fun
+She talkin' nada like it's drama, bitch, ...",bad,0.2946834332105222,0.7053165667894779,True
+NUMB.clean.txt,NUMB.clean,bad,bad,0.2919116164737898,0.7080883835262102,True,"﻿Final stage of bein' numb, felt this way since I was young
+Tell me, what could I have done different, different, different?
+Yeah, I wish things were different
+You created distance, take my pain away
+...",bad,0.28510976876764443,0.7148902312323555,True
+Neck Hurt.clean.txt,Neck Hurt.clean,bad,bad,0.1775853137026243,0.8224146862973757,True,"﻿Ay shh, huh, ay what huh, yeah, uh
+Uh, whatsup Bino, shh
+Big ass chain on my neck, got my neck hurting
+In that Lambo with that choppa, make that choppa work
+Big booty bitch in the mansion and she lik...",bad,0.26404735986353334,0.7359526401364667,True
+Obama.clean.txt,Obama.clean,bad,bad,0.20701912414426063,0.7929808758557394,True,"﻿Blueface, baby
+Yeah, aight
+Ooh
+Pull up like Trump and they duck like Donald
+Presidential on me, just like Obama
+My bitch bad, just like some karma
+I'm pullin' strings in Balenciaga (ooh)
+Pull up like...",bad,0.31118601026489,0.68881398973511,True
+Period.clean.txt,Period.clean,bad,bad,0.2937047636628564,0.7062952363371435,True,"﻿Scum, you finessed this one
+Why do you take Instagram serious? (Serious)
+She don't really fuck with me
+She just fuck with the experience (Experience)
+Niggas can't fuck with me like a period, that's a...",bad,0.3928671728440205,0.6071328271559795,True
+Road Runner.clean.txt,Road Runner.clean,bad,bad,0.24723750317502777,0.7527624968249722,True,"﻿Nigga, shh
+Soldiers
+Yeah, shh
+Gang shit, soldier nigga
+Stacks in the building
+SOD shit nigga
+Draco
+Gang
+Draco
+Zone 1, Simpson Road Nigga, that's how I'm comin'
+Ayy, when we sendin' shots
+Ops, get to ...",bad,0.323071632113733,0.676928367886267,True
+SHAKA LAKA.clean.txt,SHAKA LAKA.clean,bad,bad,0.23848006587351878,0.7615199341264812,True,"﻿Oh, you said sum'? Oh, you want Red Rum?
+Yeah, frrt
+That it's random (huh)
+Oh, you said sum'? Oh, you want Red Rum?
+I got this Glocky on my hip, it's spittin' venom (frrt)
+Oh, you got hit up, nigga, ...",bad,0.459756644635162,0.540243355364838,True
+SNAKE EYES.clean.txt,SNAKE EYES.clean,bad,bad,0.2859699047829534,0.7140300952170466,True,"﻿""Break a leg, "" what they told me
+I'm just riding with my OG
+Did a deal with Adobe
+Gold ring around the rosey
+Roll the window down slowly (Yeah)
+Let 'em know that he owe me (Yes)
+They call me the one...",bad,0.3309557808714648,0.6690442191285352,True
+Stay Dangerous.clean.txt,Stay Dangerous.clean,bad,bad,0.2253608404810525,0.7746391595189475,True,"﻿[Bravo the Bagchaser]
+(DTB, that's a slap)
+Yeah
+I be riding 'round the city with like four bangers
+I got VVS diamonds on my four fingers
+Ayy, nigga, stay dangerous
+Better keep it on you, nigga, stay ...",bad,0.42740876858006,0.57259123141994,True
+Stop Cappin.clean.txt,Stop Cappin.clean,bad,bad,0.19022966671283933,0.8097703332871606,True,"﻿HvnnidBand did that
+Blueface, baby
+HvnnidBand did that
+Yeah aight
+Stop the cappin'
+Stop the cappin'
+Stop cappin' (Stop cappin'), I'm really popping (Popping)
+How can I slip if I'm the one doing the m...",bad,0.306375539317976,0.693624460682024,True
+Street Shit.clean.txt,Street Shit.clean,bad,bad,0.2695574435278579,0.7304425564721422,True,"﻿Believe half the shit you see, nothing that you heard
+You ain't with this street shit, stay your bitch ass on the curb
+Red dot, pin drop, make his body do the jerk
+Reach in for my merch, fuck around ...",bad,0.3287163167405461,0.671283683259454,True
+Studio.clean.txt,Studio.clean,bad,bad,0.25554252643729125,0.7444574735627087,True,"﻿Blueface, baby
+Laudiano
+Yeah, alright
+I was down, I hit the studio
+Hop in the booth and let the truth be told
+When I was down, I hit the studio
+Hop in the booth and let the truth be told
+Not a stripp...",bad,0.4303894223228928,0.5696105776771072,True
+Suppose To.clean.txt,Suppose To.clean,bad,bad,0.24538282062453917,0.7546171793754608,True,"﻿[Intro]
+(Damn, Callan, you gettin' guap)
+(Oh my God, Kenny)
+Ayy, bitch, I'm ridin' in the whip with a stick on my hip
+I can never switch, bitch, I'm stickin' to the script
+I had to take a risk 'cause...",bad,0.428177195774383,0.571822804225617,True
+Swag Like Me.clean.txt,Swag Like Me.clean,bad,bad,0.11637009256644974,0.8836299074335503,True,"﻿Soulja Boy on the beat
+Draco, ayy
+Draco
+So-
+So-
+Soulja Boy on this beat, S-O-L-D-M-G stole
+Ayy, you swear like me
+S-O-L-D-M-G brand
+S-O-L-D-M-G skateboard, S-O-L-D-M-G shoe
+Ayy, yo swag like me
+Swag ...",bad,0.20439826427998858,0.7956017357200114,True
+The Price.clean.txt,The Price.clean,bad,bad,0.3187110102047315,0.6812889897952685,True,"﻿Gpg
+I'm baaaaaccccck
+I said the price of the fame
+Got a price on my head
+This is for my homies doin life in the feds
+I keep that dope money in the bed
+I got that 4-10 by my head
+2010 shit, global gre...",bad,0.3821033543024898,0.6178966456975101,True
+The Wall.clean.txt,The Wall.clean,bad,bad,0.301466671531679,0.6985333284683211,True,"﻿[Verse 1:]
+Get money, new new name kimmy
+500 rims between a legend I'm between many
+Hermezz stairs, with a bad bitch
+She horny off them oysters feed her disco stick
+The ak is like a pogo stick
+I put ...",bad,0.3787513918326378,0.6212486081673623,True
+sampleA.clean.txt,sampleA.clean,bad,bad,0.20841470930720557,0.7915852906927945,True,"Long pauses and repeated setups, weak delivery, off-beat entries.",bad,0.20841470930720557,0.7915852906927945,True
