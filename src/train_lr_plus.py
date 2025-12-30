@@ -9,6 +9,13 @@ from sklearn.preprocessing import FunctionTransformer, MaxAbsScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from feats_extra import text_stats
+# 从 skill_detection 文件夹导入
+import sys
+from pathlib import Path
+skill_dir = Path(__file__).parent.parent / "skill_detection"
+if str(skill_dir) not in sys.path:
+    sys.path.insert(0, str(skill_dir))
+from rap_techniques import detect_rap_techniques
 
 def load_ids(p: Path):
     return [x.strip() for x in p.read_text(encoding="utf-8").splitlines() if x.strip()]
@@ -60,11 +67,17 @@ if __name__=="__main__":
         ("stats", FunctionTransformer(text_stats, validate=False)),
         ("scale", MaxAbsScaler())
     ])
+    
+    rap_techniques = Pipeline([
+        ("techniques", FunctionTransformer(detect_rap_techniques, validate=False)),
+        ("scale", MaxAbsScaler())
+    ])
 
     feats = FeatureUnion([
         ("word", word_vec),
         ("char", char_vec),
-        ("stats", stats)
+        ("stats", stats),
+        ("rap_techniques", rap_techniques)
     ])
 
     clf = LogisticRegression(
@@ -98,6 +111,7 @@ if __name__=="__main__":
                   "sublinear_tf":args.sublinear_tf,"keep_apostrophe":args.keep_apostrophe},
       "char_vec":{"ngram":args.char_ngram,"sublinear_tf":args.sublinear_tf},
       "stats":["n_chars","n_lines","avg_line","n_tok","uniq_tok_ratio","repeat_line_ratio","punct"],
+      "rap_techniques":["full_court_shot","slam_dunk","half_court_shot","alley_oop"],
       "clf":{"C":args.C,"solver":"liblinear","max_iter":500}
     }
     (Path("reports")/"run_config_plus.json").write_text(json.dumps(cfg,indent=2),encoding="utf-8")

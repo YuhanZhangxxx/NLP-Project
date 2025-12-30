@@ -20,3 +20,11 @@ def text_stats(texts):
         rows.append([n_chars, n_lines, avg_line, n_tok, uniq_tok_ratio, repeat_line_ratio, punct])
     A = np.asarray(rows, dtype=float)
     return sparse.csr_matrix(A)
+
+# 向后兼容：从 skill_detection 文件夹导入
+import sys
+from pathlib import Path
+skill_dir = Path(__file__).parent.parent / "skill_detection"
+if str(skill_dir) not in sys.path:
+    sys.path.insert(0, str(skill_dir))
+from rap_techniques import detect_rap_techniques

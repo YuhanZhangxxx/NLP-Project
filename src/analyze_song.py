@@ -15,6 +15,13 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import FeatureUnion
 from feats_extra import PUNCTS
+# 从 skill_detection 文件夹导入
+import sys
+from pathlib import Path
+skill_dir = Path(__file__).parent.parent / "skill_detection"
+if str(skill_dir) not in sys.path:
+    sys.path.insert(0, str(skill_dir))
+from rap_techniques import detect_rap_techniques
 
 def clean_lyrics(text: str) -> str:
     """
@@ -177,6 +184,49 @@ def analyze_text_stats(text):
         insights.append("[-] Short bars (may lack punchlines or substance)")
     
     return stats, insights
+
+def analyze_rap_techniques(text):
+    """
+    分析说唱技巧并返回检测结果和解释。
+    返回技巧字典和说明列表。
+    """
+    techniques_matrix = detect_rap_techniques([text])
+    techniques_array = techniques_matrix.toarray()[0]
+    
+    techniques = {
+        "full_court_shot": float(techniques_array[0]),
+        "slam_dunk": float(techniques_array[1]),
+        "half_court_shot": float(techniques_array[2]),
+        "alley_oop": float(techniques_array[3])
+    }
+    
+    insights = []
+    technique_names = {
+        "full_court_shot": ("Full-Court Shot", "+5.0 Points", "高风险高回报的bar，意外的重击"),
+        "slam_dunk": ("Slam Dunk", "+4.25 Points", "震撼性的重击，瞬间爆炸反应"),
+        "half_court_shot": ("Half-Court Shot", "+3.75 Points", "创意风险命中，完美落地"),
+        "alley_oop": ("Alley-Oop/Assist", "+3.5 Points", "多人配合，团队协作")
+    }
+    
+    # 按分数排序
+    sorted_techniques = sorted(techniques.items(), key=lambda x: x[1], reverse=True)
+    
+    for tech_key, score in sorted_techniques:
+        if score > 0.3:  # 只显示显著检测到的技巧
+            name, points, desc = technique_names[tech_key]
+            percentage = score * 100
+            if score >= 0.7:
+                level = "🔥 强烈"
+            elif score >= 0.5:
+                level = "⭐ 明显"
+            else:
+                level = "✓ 存在"
+            insights.append(f"  {level} {name} ({points}): {percentage:.1f}% - {desc}")
+    
+    if not insights:
+        insights.append("  (未检测到显著的说唱技巧)")
+    
+    return techniques, insights
 
 def get_feature_contributions(pipe, text, top_n=15):
     """Extract feature contributions, supports both simple pipeline and FeatureUnion pipeline (v2_plus)"""
@@ -427,6 +477,14 @@ def format_output(file_path, text, original_text, pipe, th_good=0.5, show_lines=
         for insight in text_insights:
             output.append(f"  {insight}")
         output.append("")
+    
+    # Rap techniques analysis
+    techniques_dict, techniques_insights = analyze_rap_techniques(text)
+    output.append("[RAP TECHNIQUES DETECTED]")
+    output.append("-" * 70)
+    for insight in techniques_insights:
+        output.append(insight)
+    output.append("")
     
     # Confidence breakdown
     output.append("[JUDGE CONFIDENCE]")
