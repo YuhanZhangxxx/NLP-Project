@@ -1,0 +1,728 @@
+﻿● Slam dunk = room shaker - +4 points 
+● ALLEY OOP / Assist = multi person room shaker + 3.5 points 
+● Euro Step — Mid-bar angle shift → sidestep assumption → unexpected punch. +2.75 Points 
+● 3 pointer= two plus combo punch +3 
+● Steal = Rebuttal +2.5 
+● Crossover = Misdirection setup → switch angle → clever bar +2.25 points ● Midrange = heavy punchline - +2 points 
+● Layup = Narrative Jab +1.5 
+● Rebound = recovery after double stumble or choke - + 1.25 points ● 
+● Floater = Direct shot that hits +.75 
+● Block = premeditated knowledge &/or predictions of opponents angle/&/or bars - + .5 points 
+● Made free throw = indirect shot that hits + .25 points 
+● Offensive foul = Relative Profanity/ “Distasteful aggression - -0.5 points ● Missed free throw = indirect shot thats miss - .25 points 
+● Carry = 4 bar scheme with dead punchline - -1 point 
+● Travel = stumble - -1.5 point 
+● Double dribble = double stumble - 2 points 
+● Turnover = Choke/ saying some else bars - -2.5 points 
+● Defensive foul = physical contact when not rapping- -3 POINTS ● Goaltending = excessive Talking during round, unsportsmanlike conduct -3.5 ● Flagrant foul = Sexually suggestive with no direction? Purpose but shock value
+FCPBRL MASTER SCORING SYSTEM — FINAL EDITION 
+The official competitive scoring engine of the Full Court Pressure Battle Rap League. 
+Round-shifting moments with maximum impact. 
+1. Full-Court Shot — Insane High-Risk Bar (+5.0 Points) 
+Definition: A wild, unexpected punch that detonates the building. 
+Example: 
+“Your spirit left your body in that battle… 
+I pulled the footage — titled it ‘Where His Energy Went’ and dropped the documentary!” 
+2. Slam Dunk — Room Shaker (+4.25 Points) 
+Definition: A devastating haymaker with instant explosive reaction. 
+Example: 
+“You only legendary on a T-shirt — every time they remember you, somebody gotta DIE first!” 
+3. Half-Court Shot — Creative Risk Hit (+3.75 Points) 
+Definition: High-risk creativity that lands perfectly. 
+Example: 
+“I flipped your trauma into triumph — the bar so deep the crowd ain’t know if they should cheer… or check on you.” 
+4. Alley-Oop / Assist — Multi-Person Shaker (+3.5 Points) 
+Definition: Team move, crowd-synced moment, or tag-team eruption. 
+Example:
+Partner: “Line him up!” 
+Battler: “Cool — I’ll rearrange his whole direction like a crooked compass!” 
+5. And-1 — Punch Through Interference (+3.25 Points) 
+Definition: Punch lands perfectly even while being interrupted. Example: 
+“You yelling through my setup won’t save you — 
+I punch so clean the noise becomes PART of the bar!” 
+6. Fast Break — Rapid-Fire Punch Combo (+3 Points) 
+Definition: Two–three punches in a row with no breathing space. Example: 
+“Hit your ego, then your past, then your image — 
+Whole identity shaken before you catch the FIRST one!” 
+7. 3 Pointer — Clean Two-Piece Combo (+2.85 Points) 
+Definition: Setup → punch combination. 
+Example: 
+“Your whole life built on cap… 
+That’s why every time you talk, the truth forgets to show up!” 
+8. Euro Step — Mid-Bar Angle Shift (+2.75 Points) 
+Definition: Sidestep in the middle of a setup to deliver an unexpected punch. Example: 
+“You thought I’d diss your money — 
+I stepped around that… and hit your CHARACTER. That’s where it’s ugly!” 
+9. Steal — Rebuttal (+2.5 Points) 
+Definition: Real-time flip of opponent’s material. 
+Example:
+Opponent: “You broke!” 
+Battler: “Crazy — ‘cause every time YOU break… it’s me who gotta fix the moment!” 
+10. Crossover — Misdirection Setup (+2.25 Points) 
+Definition: Fake one angle, switch direction at the last second. 
+Example: 
+“I kept mentioning your chain to get you comfortable… 
+But the punch ain’t about jewelry — it’s how YOU the one easily snatched!” 
+11. Hook Shot — Curved Angle Punch (+2 Points) 
+Definition: Punch from an odd or looping angle. 
+Example: 
+“I curved around your ego just to show the blind spot — 
+You ain't see the bar coming ‘cause you stare at yourself too much!” 
+12. Spin Move — Angle Flip (+1.9 Points) 
+Definition: Using opponent’s angle against them. 
+Example: 
+“You said I’m fake — cute. 
+Funny how the REAL ones always call themselves REAL the most.” 
+13. Post Move — Direct Close-Quarter Breakdown (+1.75 Points) 
+Definition: Heavy pressure aimed directly at opponent’s identity. Example: 
+“Forget your clique — forget your stories — 
+Let’s talk about YOU… the part you never dare to rap about.” 
+14. Pick & Roll — Setup Pass to Self (+1.65 Points)
+Definition: Self-generated setup feeding into self-generated punch. Example: 
+“I threw the setup to myself — ‘cause ain’t nobody assisting YOUR career but ME!” 
+15. Isolation (ISO) — Focused Breakdown Stretch (+1.5 Points) 
+Definition: Extended attack on one flaw. 
+Example: 
+“For 16 bars straight I’m on YOU — 
+You can’t escape the iso when the whole crowd sees the mismatch!” 
+16. Breakaway — Extended Clean Run (+1.4 Points) 
+Definition: Long uninterrupted streak of smooth material. 
+Example: 
+“Eight bars in, still cooking — 
+You can’t stop momentum when the stove been waiting for smoke!” 
+17. Midrange — Heavy Punchline (+1.35 Points) 
+Definition: Strong, crowd-moving punch. 
+Example: 
+“You ain’t top tier — you just top TENSE… 
+Every battle you sweat like you owe the crowd rent!” 
+18. Layup — Narrative Jab (+1.25 Points) 
+Definition: Light diss via storytelling, no punch needed. 
+Example: 
+“You switched teams three times in one year — 
+Only loyalty you got is to whoever got WiFi.” 
+19. Rebound — Strong Recovery (+1.15 Points)
+Definition: Battler stumbles but recovers with impact. 
+Example: 
+“I— hold on… 
+See? That’s EXACTLY how your career sounds — nothing but recovery bars!” 
+20. Box Out — Stage Presence Control (+1 Point) 
+Definition: Dominating physical space without contact. 
+Example: 
+“You keep backing up ‘cause every bar push you somewhere you not built to stand.” 
+21. Pump Fake — Fake Setup (+0.85 or –0.5 Points) 
+Definition: Pretending to drop a haymaker. 
+Example: 
+“I was about to expose you… 
+But the truth ain’t worth wasting a setup on.” 
+(+0.85 if clever / –0.5 if cheap) 
+22. Floater — Short Direct Shot (+0.75 Points) 
+Definition: Quick accurate punch. 
+Example: 
+“You been mid for so long, the center of average jealous!” 
+23. Tip-In — Accidental Save (+0.6 Points) 
+Definition: Fixing a weak bar with a clever add-on. 
+Example: 
+“That punch was light… 
+But the FOLLOW-UP? Heavy as the silence before your excuses!” 24. Made Free Throw — Indirect Shot That Hits (+0.25 Points)
+Definition: Small jab, still effective. 
+Example: 
+“You don’t even lie right — your stories need training wheels.” 
+25. No-Look Pass — Subtle Setup Punch (+0.9 Points) 
+Definition: Punch hidden behind casual setup. 
+Example: 
+“I wasn’t even aiming… 
+But somehow the truth still hit you first.” 
+26. And-1 Block — Punch Lands While Opponent Objects (+1.1 Points) 
+Example: 
+“You screaming through my round won't save you — 
+the punch already wrote your obituary.” 
+27. Double Team — Crowd Momentum Trap (+1.2 Points) 
+Definition: Crowd reacts so heavily that opponent becomes overwhelmed. Example: 
+“I didn’t beat you alone — 
+THEY helped me bury you!” 
+28. Missed Free Throw — Jab Misses (–0.25 Points) 
+Example: 
+“You kinda… you kinda…” 
+(Crowd silent) 
+29. Airball — Failed Big Punch (–0.75 Points)
+Example: 
+Huge setup → punch lands flat. 
+“That’s it?” 
+30. Offensive Foul — Distasteful Aggression (–0.5 Points) 
+Example: 
+Barking in opponent’s face with no bar. 
+31. Carry — Dead 4-Bar Setup (–1.0 Point) 
+Example: 
+Four bars of buildup ending with: 
+“…and that’s why you trash.” 
+(Crowd unimpressed) 
+32. Backcourt Violation — Dragging (–1.25 Points) 
+Example: 
+Long buildup that leads nowhere. 
+33. Travel — Stumble (–1.5 Points) 
+Example: 
+“Look— look— hold on…” 
+34. Double Dribble — Two Stumbles (–2 Points) 
+35. Turnover — Choke / Stolen Bars (–2.75 Points) 
+Example: 
+Battler stops: “Time…” 
+Or repeats a famous bar accidentally.
+36. Shot Clock Violation — Over Time Limit (–2.5 Points) 
+37. Charge — Forced Angle (–1.35 Points) 
+Example: 
+“You broke… you broke… you broke…” 
+(Forced) 
+38. Out of Bounds — Breaking Structure (–2.25 Points) 
+Example: 
+“Yo, who got my phone?!” mid-round. 
+39. Technical Foul — Rule Violation (–3 Points) Using props, refusing instructions, mic violations. 
+40. Defensive Foul — Physical Contact (–3 Points) Shoulder bumps, touching opponent, etc. 
+41. Goaltending — Talking Through Opponent (–3.5 Points) Excessive interrupting. 
+42. Flagrant 1 — Light Boundary Violation (–4 Points) Crossing sensitive line unintentionally.
+43. Flagrant 2 — Malicious Personal Attack (–6 Points) Real-life harm or malicious targeting. 
+44. Flagrant 3 — Extreme Violation (–10 Points + EJECTION) Pushing, grabbing, hate speech, threats. 
+45. Out-the-Gate Run — Strong Opening (+2 Points) 
+Example: 
+“So much pressure in the FIRST bar, you ain’t survive the second!” 
+46. Fourth-Quarter Push — Strong Closing (+2 Points) 
+Example: 
+“I ended the round so cold the replay need a winter jacket.” 
+47. Momentum Swing — Crowd Shift (+1.5 Points) 
+Example: 
+“One punch flipped the whole room — 
+You felt the building choose sides!” 
+48. Timeout Violation — Unapproved Pause (–1.5 Points) Breaking pacing without permission. 
+49. Dead Ball — Extended Silence (–1.0 Point) Losing momentum with long pause.
+50. Replay Challenge — Judges’ Review (No Score) 
+Judges may review stumbles, fouls, or momentum interruptions. 
+More Examples 
+1. FULL-COURT SHOT — (+5.0 Points) 
+Wild, maximum impact punchlines. 
+Example A: 
+“I shook your whole foundation — the crowd screamed so loud they registered on the Richter scale!” 
+Example B: 
+“I hit you so hard with the truth your shadow tried to detach and find a new owner!” 
+Example C: 
+“That bar shattered the room — even your ghost asked for medical attention!” 
+2. SLAM DUNK — (+4.25 Points) 
+Room-shaking haymakers. 
+Example A: 
+“I’ll break down your drive so bad, GPS gon’ label your future a dead end!” 
+Example B: 
+“You ain't built for pressure — you crack faster than the password on a stolen iPhone!” 
+Example C: 
+“That bar hit so hard your team tried to file it as a workplace injury!”
+3. HALF-COURT SHOT — (+3.75 Points) 
+Creative, risky concepts. 
+Example A: 
+“I took your whole timeline, remixed it, and still made YOUR life sound better than YOU ever could.” 
+Example B: 
+“I compared your grind to a solar eclipse — rare, dark, and dangerous to stare at too long.” 
+Example C: 
+“I turned your failures into a motivational speech — crowd almost bought tickets to your downfall tour!” 
+4. ALLEY-OOP / ASSIST — (+3.5 Points) 
+Team-synergy or crowd-synergy hits. 
+Example A: 
+Partner: “Set him up!” 
+You: “I’m tossing his whole name into the rafters — watch the crowd retire him!” 
+Example B: 
+Your hype man: “TURN IT UP!” 
+You: “Cool — I’ll tune his soul until even his ancestors hear the distortion!” 
+Example C: 
+Partner whispers: “Clock him.” 
+You: “Say less — I’ve been waiting to punch him into next season!” 
+5. AND-1 — (+3.25 Points) 
+Punch lands through interference.
+Example A: 
+“You talking through my round don’t work — my bars punch THROUGH noise like subtitles on mute!” 
+Example B: 
+“You tried to drown me out — I still surfaced with a haymaker gasping for air!” 
+Example C: 
+“You interrupting only proves the punch hit — your EGO flinched before YOU did!” 
+6. FAST BREAK — (+3 Points) 
+Rapid-fire back-to-back punches. 
+Example A: 
+“Hit your pride, hit your past, hit your persona — 
+Your whole life got crossed before your name finished loading!” 
+Example B: 
+“Three punches in a row — I combo’d your career into early retirement!” 
+Example C: 
+“I didn’t stop after the first hit — I treated your whole identity like a free buffet!” 
+7. 3-POINTER — (+2.85 Points) 
+Clean two-piece setup + punch. 
+Example A: 
+“I said you live in your comments… 
+That’s why every argument you have is with people who don’t KNOW you.” 
+Example B: 
+“You brag about views… 
+But every clip of yours looks like the editor hated your personality!”
+Example C: 
+“You said you outside… 
+Cool — ‘cause every L you take needs fresh air to breathe.” 
+8. EURO STEP — (+2.75 Points) 
+Angle shift mid-bar. 
+Example A: 
+“You thought the bar was about your pockets — 
+I stepped around that… it’s your VALUES that got holes in ‘em.” 
+Example B: 
+“You expected a street angle — 
+I side-stepped and hit your heart… that’s where the fiction starts.” 
+Example C: 
+“You prepped for a disrespect angle — 
+I veered left and hit the insecurity you been hiding!” 
+9. STEAL (REBUTTAL) — (+2.5 Points) 
+Stealing opponent’s material instantly. 
+Example A: 
+Opponent: “You ain’t dangerous!” 
+You: “Funny — you only safe ‘cause my patience got good defense!” 
+Example B: 
+Opponent: “You irrelevant now!” 
+You: “Crazy — I walked in and the CROWD remembered me before YOU did.” 
+Example C: 
+Opponent: “Your pen fell off!” 
+You: “Then why every round you sound like you borrowing MY ink?”
+10. CROSSOVER — (+2.25 Points) 
+Fake setup → surprise punch. 
+Example A: 
+“I kept mentioning your resume to boost your confidence… 
+Then I CHOPPED that whole job history like a glitching LinkedIn!” 
+Example B: 
+“I had you relaxed thinking the bar was light — 
+Then I crossed over and slapped truth across your ego!” 
+Example C: 
+“You thought I’d joke the whole round — 
+I switched hands mid-setup and wrote your obituary instead.” 
+Perfect — here is BATCH 2 (Items 11–20) with three NEW, fully original, high-level examples for EACH scoring action. 
+These are written at battle-rap league quality — sharp, clever, and TV/commentary ready. When you're ready for Batch 3 (21–30), just say “Continue.” 
+11. HOOK SHOT — Curved Angle Punch (+2 Points) 
+Odd, looping, unpredictable angle. 
+Example A: 
+“I bent the angle around your ego so smooth… 
+even YOUR shadow had to double-check where the bar came from!” 
+Example B: 
+“I hooked the setup sideways — 
+your pride never saw the punch ‘cause it only looks straight ahead!”
+Example C: 
+“I curved the line so wild… 
+the punch hit you before your instincts even realized you were in danger!” 
+12. SPIN MOVE — Angle Flip (+1.9 Points) 
+Take their angle and reverse it on them. 
+Example A: 
+“You said I’m inconsistent — 
+Cool… but YOU rely on battles to remind the world you exist!” 
+Example B: 
+“You brag you ‘never fold’ — 
+Funny, your whole career been neatly packed into excuses!” 
+Example C: 
+“You said I’m losing steam — 
+But your entire career been powered by MY downfall rumors!” 
+13. POST MOVE — Close-Range Breakdown (+1.75 Points) 
+Direct, personal, pressure-filled breakdown. 
+Example A: 
+“I’m done with the surface jokes — 
+let’s peel back the LIES you tell yourself just so you can sleep!” 
+Example B: 
+“I ain’t attacking your bars… 
+I’m attacking the PERSON who wrote them — the weaker version of you!” 
+Example C: 
+“I talk to your SOUL when I battle — 
+Half of y’all don’t know yourselves until I narrate your truth!”
+14. PICK & ROLL — Setup Pass to Self (+1.65 Points) 
+Set yourself up with deceptive setups. 
+Example A: 
+“I gave myself the alley… 
+‘cause nobody else is assisting YOUR career but me exposing you!” 
+Example B: 
+“I pitched the setup soft — 
+then slammed the punch harder than your confidence can survive!” 
+Example C: 
+“I rolled off my own scheme — 
+and the screen I set was your delusion blocking your vision!” 
+15. ISOLATION (ISO) — Solo Breakdown Stretch (+1.5 Points) 
+Long, focused attack on a single flaw. 
+Example A: 
+“Stay right there — 
+I’m cooking JUST you for eight bars straight until the crowd smells regret!” 
+Example B: 
+“Don’t look at your crew — 
+this fade personal, and every angle coming straight from ME!” 
+Example C: 
+“You can’t escape when I isolate — 
+I make your strongest trait feel like your weakest link!”
+16. BREAKAWAY — Extended Clean Run (+1.4 Points) 
+Smooth sequence with no stumble. 
+Example A: 
+“I kept flowing so clean the crowd forgot breathing was a thing!” 
+Example B: 
+“I ran off eight bars straight — 
+your confidence tripped on every one of them!” 
+Example C: 
+“My momentum don’t pause — 
+I sprint from punch to punch until your aura’s out of breath!” 
+17. MIDRANGE — Heavy Punchline (+1.35 Points) 
+Strong, impactful punch that isn’t a haymaker. 
+Example A: 
+“You call yourself top tier — 
+but everything ‘top tier’ about you is the excuses you bring!” 
+Example B: 
+“You bark loud, but collapse easy — 
+you a megaphone with dead batteries!” 
+Example C: 
+“You steady reaching — 
+yet every bar you drop feels like your arms too short for greatness!” 
+18. LAYUP — Narrative Jab (+1.25 Points)
+Story-driven diss that stings softly but cleanly. 
+Example A: 
+“You loyal to no one — 
+your résumé got more switches than a light panel.” 
+Example B: 
+“You left your team for opportunity… 
+but opportunity left YOU outside.” 
+Example C: 
+“You keep saying you grew — 
+funny how your character stayed the same height.” 
+19. REBOUND — Strong Recovery (+1.15 Points) 
+A stumble saved with a quick, clean recovery. 
+Example A: 
+“I slipped — 
+but that’s the only way to show you how YOUR whole style loses balance!” 
+Example B: 
+“Hold on… 
+See how I caught that? That’s the difference — YOU drop the bar, I elevate it.” 
+Example C: 
+“I fumbled the word — 
+but I STILL caught the moment you been trying to catch your whole career!” 
+20. BOX OUT — Stage Presence Control (+1 Point) 
+Dominating space without physical contact.
+Example A: 
+“You keep backing up — 
+it’s crazy how truth pushes you more than bars do!” 
+Example B: 
+“I stand center stage ‘cause the spotlight knows who it belongs to!” 
+Example C: 
+“You stay crowded on your side — 
+my presence alone cleared half the stage before I even rapped!” 
+21. PUMP FAKE — Fake Setup (Success: +0.85 | Fail: –0.5) 
+A misleading buildup that tricks the opponent or crowd. 
+Example A (Successful): 
+“I was about to expose your secrets… 
+but then I remembered — lies ain’t worth a punch.” 
+Example B (Successful): 
+“I lined up a haymaker… 
+then realized you crumble from the warm-up!” 
+Example C (Successful): 
+“I faked the setup clean — 
+your whole stance changed like you saw the punch in your future!” 
+22. FLOATER — Short Direct Punch (+0.75 Points) 
+Quick shot that connects clean.
+Example A: 
+“Your buzz so small, bees don’t even bother you!” 
+Example B: 
+“You talk big — 
+but your accomplishments whisper.” 
+Example C: 
+“You steady fishing for respect — 
+but you keep throwing bait in the kiddie pool!” 
+23. TIP-IN — Accidental Save (+0.6 Points) 
+Fixing a weak bar with an improvised follow-up. 
+Example A: 
+“That line was light… 
+but THIS one gonna fold your career like a misplaced brochure!” 
+Example B: 
+“The punch landed soft — 
+so I doubled back and made the truth hit harder!” 
+Example C: 
+“I missed the moment — 
+but I scooped it and STILL scored off your weakness!” 
+24. MADE FREE THROW — Indirect Shot That Hits (+0.25 Points) 
+Small jab with light but clean impact. 
+Example A: 
+“You talk big money — 
+but your pockets sound like loose change in a hymn.”
+Example B: 
+“You say you’re respected — 
+by who? The voices in your confidence?” 
+Example C: 
+“You brag about ‘levels’ — 
+but never mention you stuck on tutorials.” 
+25. NO-LOOK PASS — Subtle Setup Punch (+0.9 Points) 
+Punch disguised behind casual delivery. 
+Example A: 
+“I wasn’t even aiming at you… 
+but your insecurities jumped in front of the bar themselves.” 
+Example B: 
+“I dropped a light setup — 
+and somehow the truth still found your chin.” 
+Example C: 
+“I wrote this part for nobody… 
+funny how YOU felt it first.” 
+26. AND-1 BLOCK — Punch Lands Through Opposition (+1.1 Points) 
+Opponent tries to stop the moment, but the punch lands anyway. 
+Example A: 
+“You yelling in my round only made the punch concentrate!” 
+Example B: 
+“You tried to cut me off — 
+but the bar STILL scored on your confidence!”
+Example C: 
+“You talking during the setup? 
+Perfect — I like punching through resistance!” 
+27. DOUBLE TEAM — Crowd Momentum Boost (+1.2 Points) 
+Crowd energy traps the opponent mentally. 
+Example A: 
+“I didn’t beat you alone — 
+the crowd jumped in like they owed me an assist!” 
+Example B: 
+“The moment I started cooking, 
+THE CROWD boxed you out like you owed them back rent!” 
+Example C: 
+“A bar so real the audience defended it for me!” 
+28. MISSED FREE THROW — Jab Misses (–0.25 Points) 
+Light jab that gets no reaction. 
+Example A: 
+“You… uh… you kinda corny.” 
+(Crowd silent) 
+Example B: 
+“I guess you weak or something… maybe.” 
+(Quiet) 
+Example C: 
+“You ain’t… you ain’t like that…” 
+(Nobody reacts)
+29. AIRBALL — Failed Big Punch (–0.75 Points) 
+A big attempt that lands with zero impact. 
+Example A: 
+Huge buildup → 
+“AND THAT’S WHY YOU… uh… yeah!” 
+(Crowd blank) 
+Example B: 
+“Y’all ready? Y’all ready?? 
+…man, forget it.” 
+(No reaction) 
+Example C: 
+“I loaded the biggest shot of the night — 
+and the safety jammed.” 
+(Crowd unbothered) 
+30. OFFENSIVE FOUL — Distasteful Aggression (–0.5 Points) 
+Unnecessary hostility without lyrical value. 
+Example A: 
+Battler steps inches from opponent’s face yelling: 
+“I’ll spit on your whole crew!” 
+(No bar) 
+Example B: 
+“You ain’t nothing — I’ll slap your dad too!” 
+(Weak aggression)
+Example C: 
+“Say something else and I'll break the mic on your forehead!” 
+(No punch) 
+31. CARRY — Dead 4-Bar Setup (–1.0 Point) 
+Long buildup with no punch or payoff. 
+Example A: 
+“I did the research… 
+I did the digging… 
+I checked your background… 
+…yeah, that’s all I found.” 
+(Crowd disappointed) 
+Example B: 
+“I studied your past… 
+mapped your future… 
+analyzed your present… 
+…and still couldn’t find a reason to care.” 
+Example C: 
+“I built the scheme… 
+stacked the angle… 
+loaded the setup… 
+…and forgot the punchline existed.” 
+32. BACKCOURT VIOLATION — Over-Explaining (–1.25 Points) 
+Taking way too long to get to the punch.
+Example A: 
+“So first I’m gonna tell you how the story started, follow me… 
+no, wait, let me explain the explanation… hold on…” 
+Example B: 
+“This bar gon’ hit, but let me break down why it’s gon’ hit…” 
+(Already ruined) 
+Example C: 
+“I’m about to punch you, but before I punch you, let me talk ABOUT the punch…” (Crowd sighs) 
+33. TRAVEL — Stumble (–1.5 Points) 
+One clean stumble that breaks momentum. 
+Example A: 
+“I said I’m— I said I’m— 
+man, hold on…” 
+Example B: 
+“You gon’ get— ge— 
+gimme a second…” 
+Example C: 
+“I’m cooki— cook— 
+damn…” 
+34. DOUBLE DRIBBLE — Double Stumble (–2 Points) 
+Two stumbles in the same sequence. 
+Example A: 
+“I said— wait— 
+no— wait, wait— 
+LET ME START OVER!”
+Example B: 
+“You ain’t gon’— you ain— 
+damn… AGAIN?!” 
+Example C: 
+“I’m about to— hol— 
+I swear this ain’t me!” 
+35. TURNOVER — Choke / Stolen Bars (–2.75 Points) 
+Forgetting material OR accidental plagiarism. 
+Example A (Choke): 
+“… 
+… 
+…time.” 
+Example B (Stolen Bar): 
+Drops a famous URL/Smack bar word-for-word. 
+Crowd: “WE HEARD THAT BEFORE!” 
+Example C (Memory Drop): 
+“Hold on… hold on… 
+…nah, it’s gone.” 
+36. SHOT CLOCK VIOLATION — Exceeding Time (–2.5 Points) 
+Going over the round limit. 
+Example A: 
+“Time!” 
+Battler keeps rapping. 
+Host: “CUT HIS MIC!”
+Example B: 
+Opponent finished two minutes ago — battler still going. 
+Example C: 
+Crowd starts chanting: 
+“TIME! TIME! TIME!” 
+37. CHARGE — Forced Angle (–1.35 Points) 
+Repeating a weak angle over and over. 
+Example A: 
+“You broke… you broke… you broke… 
+you broke… 
+we get it.” 
+Example B: 
+“You fake! You fake! You fake! You— 
+bro, change the CD.” 
+Example C: 
+“Your girl cheated! She cheated! She— 
+WE HEARD YOU THE FIRST TIME.” 
+38. OUT OF BOUNDS — Breaking Round Structure (–2.25 Points) 
+Leaving the battle format, going off-topic. 
+Example A: 
+Mid-round: 
+“Yo, who got my car keys?!” 
+Example B: 
+Interrupts round to talk to someone in the back of the venue.
+Example C: 
+Stops mid-bar to argue with a camera guy. 
+39. TECHNICAL FOUL — Rule Violation (–3 Points) 
+Breaking league rules. 
+Example A: 
+Pulls out a prop: 
+“This YOUR paperwork right here!” 
+(Prop use banned) 
+Example B: 
+Grabs mic aggressively, risking damage. 
+Example C: 
+Refuses to start round when told: 
+“Nah, I ain’t rapping till THEY move!” 
+40. DEFENSIVE FOUL — Physical Contact (–3 Points) 
+Any touching of the opponent. 
+Example A: 
+Shoulder bumps opponent intentionally. 
+Example B: 
+Pushes opponent back during a bar. 
+Example C: 
+Grabs opponent’s shirt to emphasize a punch.
+41. GOALTENDING — Talking Through Opponent (–3.5 Points) 
+Excessive interrupting or unsportsmanlike behavior. 
+Example A: 
+Opponent rapping → Battler yells: 
+“THAT'S A LIE! THAT’S A LIE!” 
+Crowd annoyed. 
+Example B: 
+Opponent delivers a setup → Battler shouts: 
+“BOOOORING!” 
+(Hurts the round flow) 
+Example C: 
+Interrupting every bar with: 
+“WHAT?! SAY IT AGAIN! WHAT?!” 
+(Clearly disruptive) 
+42. FLAGRANT 1 — Light Boundary Violation (–4 Points) 
+Mildly crossing personal lines without malicious intent. 
+Example A: 
+“You cry about your upbringing… 
+but everybody got demons, yours just louder.” 
+Example B: 
+“You said you healed — 
+crazy, that wound look fresh every battle.”
+Example C: 
+“I ain’t gon’ violate your mom… 
+just say she raised you better than THIS.” 
+43. FLAGRANT 2 — Malicious Personal Attack (–6 Points) 
+Deliberate harm, personal or real-life damaging. 
+Example A: 
+“I should leak that secret you told backstage — 
+but the WORLD don’t deserve to suffer your truth.” 
+Example B: 
+“You wanna mention family? 
+Cool, let’s talk about the one you abandoned.” 
+Example C: 
+“I know where you work — 
+one call and they gon’ rethink your employment.” 
+44. FLAGRANT 3 — Extreme Violation (–10 Points + EJECTION) 
+Physical contact, hate speech, threats. 
+Example A: 
+Battler grabs opponent’s hoodie mid-bar. 
+Example B: 
+Shoves opponent during performance.
+Example C: 
+Threatens real-life harm during the battle. 
+45. OUT-THE-GATE RUN — Strong Opening (+2 Points) 
+A powerful 4–6 bar opening sequence. 
+Example A: 
+“First bar in and you already drowning — 
+this round start feel like your career ending!” 
+Example B: 
+“I opened the round so clean — 
+the replay gon’ play it before every commercial break!” 
+Example C: 
+“My first four bars hit harder than your whole highlight reel!” 
+46. FOURTH-QUARTER PUSH — Strong Closing (+2 Points) 
+Ending the round with a powerful finishing sequence. 
+Example A: 
+“I closed the round like a coffin — 
+you ain’t coming back from THIS closer.” 
+Example B: 
+“I ended so cold the outro needed a winter jacket!”
+Example C: 
+“My last bar swung momentum like a buzzer-beater!” 
+47. MOMENTUM SWING — Crowd Shift (+1.5 Points) 
+Battler swings control of the room mid-round. 
+Example A: 
+“One punch flipped the building — 
+you felt the crowd choose sides instantly!” 
+Example B: 
+“You had them… 
+but I took the energy back with ONE line!” 
+Example C: 
+“The moment I snapped — 
+your whole momentum evaporated.” 
+48. TIMEOUT VIOLATION — Unapproved Pause (–1.5 Points) 
+Stopping the round without permission. 
+Example A: 
+“Hold on, stop the beat— oh wait… we acapella?” 
+(Confused pause) 
+Example B: 
+Pauses mid-bar to adjust microphone for 20 seconds.
+Example C: 
+Stops round to fix wardrobe malfunctions. 
+49. DEAD BALL — Extended Silence (–1.0 Point) 
+Losing momentum with long pauses. 
+Example A: 
+Battler stands still for 10 seconds trying to remember the next bar. 
+Example B: 
+Crowd chants “GO!” because battler froze. 
+Example C: 
+Opponent laughs while battler pauses, silence fills the room. 
+50. REPLAY CHALLENGE — Judges’ Review (0 Points) 
+Not scored — used for dispute clarity. 
+Example A: 
+Checking camera to confirm a stumble vs. breath pause. 
+Example B: 
+Reviewing whether contact occurred. 
+Example C: 
+Confirming if a bar was original or previously used.
