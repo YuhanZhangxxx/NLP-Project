@@ -778,6 +778,9 @@ def detect_rap_techniques(texts):
     返回:
         scipy.sparse.csr_matrix: 稀疏矩阵，形状为 (len(texts), 4)
     """
+    # Handle single string input (not just lists)
+    if isinstance(texts, str):
+        texts = [texts]
     rows = []
     
     for text in texts:
