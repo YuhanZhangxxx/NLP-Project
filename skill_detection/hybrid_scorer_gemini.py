@@ -62,7 +62,7 @@ except ImportError:
 
 DEFAULT_MODEL = "gemini-2.5-flash"
 DEFAULT_MODEL_OPENAI = "gpt-4o-mini"
-_PROVIDER = "gemini"  # set by --provider arg
+_PROVIDER = "gemini"  # locked: Google Gemini specialized version
 
 WINDOW_SIZE = 10   # lines per window
 WINDOW_OVERLAP = 3  # lines shared with previous window (stride = WINDOW_SIZE - WINDOW_OVERLAP)
@@ -126,6 +126,7 @@ HARD NEGATIVES — these LOOK like high skills but DO NOT qualify:
 
 ES (Euro Step) REJECTED:
 ✗ "naked / Nathan" — only 2 nodes. ES needs a chain of 3+ distinct pivot nodes (A→B→C).
+✗ "I showed him naked. He basic. / But I showed him Nathan. He bacon." — REJECTED. This is a PARALLEL SWAP (naked↔Nathan, basic↔bacon simultaneously). Two words transforming at once is NOT a linear chain A→B→C. Award LU instead. Do NOT award ES for this pattern.
 ✗ "You plain, basic, lame" — three words all meaning "bad". No pivot between domains.
 ✗ "fire / desire / choir" — end-rhyme only; meaning does not pivot at each step. Rhyming ≠ ES.
 ✗ Borrowing a node from context outside the quoted lines — ALL 3+ pivot nodes must appear IN the lines you quote. If you can only see 2 nodes in the quoted text, it is NOT ES.
@@ -145,13 +146,14 @@ SPM (Spin Move) REJECTED:
 ✗ "You rich but spend it wrong" — an observation, not a setup/reversal flip. Award CO or MR instead.
 → If there is no clear "you are X" SETUP followed by "actually you are the OPPOSITE" flip, it is NOT SPM.
 
-OGR (Out-the-Gate) REJECTED:
-✗ "Welcome to hell." / "Let's go." / "I'm here." — a single short generic aggressive line with no craft does NOT qualify. OGR must demonstrate authority AND a creative hook (wordplay, concept, or sharp angle) in the opening.
-→ If the opening is just a mood-setter with no actual craft, do NOT award OGR.
+OGR (Out-the-Gate) REJECTED — ABSOLUTE RULE:
+✗ "Welcome to hell." — REJECTED. 3 words, zero craft. Do NOT award OGR for this line under any circumstances.
+✗ Any opening line under 8 words with no wordplay, metaphor, or specific attack — REJECTED.
+→ "Setting the tone" or "authoritative" alone is NOT enough. OGR requires an opening that demonstrates actual craft.
 
-CO (Crossover) REJECTED:
-✗ "Just like a commercial. No it's like infomercial." — the word "No" signals a self-correction. If the battler corrects themselves mid-line, it is NOT a crossover regardless of what follows. Award MR or LU for the better of the two options.
-✗ RULE: If the first component is a self-correction ("no", "wait", "I mean", "actually"), the ENTIRE block fails CO. Period. Do not rescue it by attaching a second line.
+CO (Crossover) REJECTED — ABSOLUTE RULE:
+✗ "Just like a commercial. No it's like infomercial." — REJECTED. Do NOT award CO for this line. EVER. "No it's like infomercial" is a self-correction, not a direction change.
+✗ ABSOLUTE RULE: Any line containing "No it's", "no wait", "I mean", "actually it's", or any self-correction word signals the battler changing their own mind — this FAILS CO with NO EXCEPTIONS. Award MR for the stronger of the two options.
 
 STL (Steal/Rebuttal) REJECTED:
 ✗ "You talked about money, I got more money" — same topic, but no echo of opponent's ACTUAL words.
@@ -781,12 +783,8 @@ def main():
     ap.add_argument("--battler", "-b", default=None)
     ap.add_argument("--opponent-bars", help="Opponent's bars as inline text (for STL detection)")
     ap.add_argument("--opponent-file", help="Path to file containing opponent's bars")
-    ap.add_argument("--provider", choices=["gemini", "openai"], default="gemini",
-                    help="LLM provider: gemini (GOOGLE_API_KEY) or openai (OPENAI_API_KEY)")
     args = ap.parse_args()
-
-    global _PROVIDER
-    _PROVIDER = args.provider
+    # Provider locked to Gemini in this specialized version
 
     if args.file:
         text = Path(args.file).read_text(encoding="utf-8")

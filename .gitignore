@@ -1,0 +1,6 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+skill_detection/.llm_cache.json

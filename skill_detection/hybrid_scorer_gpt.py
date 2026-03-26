@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
-Hybrid FCPBRL scorer: rule engine (skill_engine.py) + Gemini API LLM.
+Hybrid FCPBRL scorer: rule engine (skill_engine.py) + OpenAI GPT API LLM.
+GPT specialized version — uses OPENAI_API_KEY, defaults to gpt-4o-mini.
 
 Pipeline:
   1. Rule engine runs first  → reliable DD, TVL structural detections
@@ -60,9 +61,9 @@ try:
 except ImportError:
     _OPENAI_AVAILABLE = False
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gpt-4o-mini"
 DEFAULT_MODEL_OPENAI = "gpt-4o-mini"
-_PROVIDER = "gemini"  # set by --provider arg
+_PROVIDER = "openai"  # locked: OpenAI GPT specialized version
 
 WINDOW_SIZE = 10   # lines per window
 WINDOW_OVERLAP = 3  # lines shared with previous window (stride = WINDOW_SIZE - WINDOW_OVERLAP)
@@ -126,6 +127,7 @@ HARD NEGATIVES — these LOOK like high skills but DO NOT qualify:
 
 ES (Euro Step) REJECTED:
 ✗ "naked / Nathan" — only 2 nodes. ES needs a chain of 3+ distinct pivot nodes (A→B→C).
+✗ "I showed him naked. He basic. / But I showed him Nathan. He bacon." — REJECTED. This is a PARALLEL SWAP (naked↔Nathan, basic↔bacon simultaneously). Two words transforming at once is NOT a linear chain A→B→C. Award LU instead. Do NOT award ES for this pattern.
 ✗ "You plain, basic, lame" — three words all meaning "bad". No pivot between domains.
 ✗ "fire / desire / choir" — end-rhyme only; meaning does not pivot at each step. Rhyming ≠ ES.
 ✗ Borrowing a node from context outside the quoted lines — ALL 3+ pivot nodes must appear IN the lines you quote. If you can only see 2 nodes in the quoted text, it is NOT ES.
@@ -145,13 +147,14 @@ SPM (Spin Move) REJECTED:
 ✗ "You rich but spend it wrong" — an observation, not a setup/reversal flip. Award CO or MR instead.
 → If there is no clear "you are X" SETUP followed by "actually you are the OPPOSITE" flip, it is NOT SPM.
 
-OGR (Out-the-Gate) REJECTED:
-✗ "Welcome to hell." / "Let's go." / "I'm here." — a single short generic aggressive line with no craft does NOT qualify. OGR must demonstrate authority AND a creative hook (wordplay, concept, or sharp angle) in the opening.
-→ If the opening is just a mood-setter with no actual craft, do NOT award OGR.
+OGR (Out-the-Gate) REJECTED — ABSOLUTE RULE:
+✗ "Welcome to hell." — REJECTED. 3 words, zero craft. Do NOT award OGR for this line under any circumstances.
+✗ Any opening line under 8 words with no wordplay, metaphor, or specific attack — REJECTED.
+→ "Setting the tone" or "authoritative" alone is NOT enough. OGR requires an opening that demonstrates actual craft.
 
-CO (Crossover) REJECTED:
-✗ "Just like a commercial. No it's like infomercial." — the word "No" signals a self-correction. If the battler corrects themselves mid-line, it is NOT a crossover regardless of what follows. Award MR or LU for the better of the two options.
-✗ RULE: If the first component is a self-correction ("no", "wait", "I mean", "actually"), the ENTIRE block fails CO. Period. Do not rescue it by attaching a second line.
+CO (Crossover) REJECTED — ABSOLUTE RULE:
+✗ "Just like a commercial. No it's like infomercial." — REJECTED. Do NOT award CO for this line. EVER. "No it's like infomercial" is a self-correction, not a direction change.
+✗ ABSOLUTE RULE: Any line containing "No it's", "no wait", "I mean", "actually it's", or any self-correction word signals the battler changing their own mind — this FAILS CO with NO EXCEPTIONS. Award MR for the stronger of the two options.
 
 STL (Steal/Rebuttal) REJECTED:
 ✗ "You talked about money, I got more money" — same topic, but no echo of opponent's ACTUAL words.
@@ -312,7 +315,10 @@ def post_process_detections(detections: list[dict]) -> list[dict]:
     Python-level fixes applied before hard gates:
     1. FL is always positive — fix any model direction error.
     2. FB with < 2 distinct lines is downgraded to MR.
-    3. Per-line dedup: same quoted line can only be claimed by the highest-value skill.
+    3. FB with near-duplicate quoted lines is rejected (DD territory).
+    4. CO with self-correction pattern ("No it's", "no wait") is rejected.
+    5. ES for naked/Nathan/bacon parallel-swap pattern is downgraded to LU.
+    6. Per-line dedup: same quoted line can only be claimed by the highest-value skill.
     """
     import difflib
 
@@ -326,7 +332,6 @@ def post_process_detections(detections: list[dict]) -> list[dict]:
         if d.get("skill_id") != "FB":
             continue
         raw_lines = d.get("lines", [])
-        # count distinct lines (split embedded \n too)
         expanded = []
         for l in raw_lines:
             expanded.extend([x.strip() for x in l.split("\n") if x.strip()])
@@ -335,6 +340,50 @@ def post_process_detections(detections: list[dict]) -> list[dict]:
             d["skill_name"] = "Mid-Range"
             d["points"] = 1.35
             d.setdefault("gate_note", "FB downgraded to MR: fewer than 2 distinct lines")
+
+    # Fix 3: FB with near-duplicate lines → reject (model is packaging DD as FB)
+    for d in detections:
+        if d.get("skill_id") != "FB":
+            continue
+        lines = [l.strip() for l in d.get("lines", []) if l.strip()]
+        has_dup = False
+        for i in range(len(lines)):
+            for j in range(i + 1, len(lines)):
+                a, b = lines[i].lower(), lines[j].lower()
+                if a in b or b in a:
+                    has_dup = True
+                    break
+                if difflib.SequenceMatcher(None, a, b).ratio() >= 0.75:
+                    has_dup = True
+                    break
+        if has_dup:
+            d["skill_id"] = "MR"
+            d["skill_name"] = "Mid-Range"
+            d["points"] = 1.35
+            d["gate_note"] = "FB rejected: near-duplicate lines (DD territory)"
+
+    # Fix 4: CO with self-correction → reject
+    _self_correct = ("no it's", "no it is", "no wait", "i mean", "actually it's", "actually it is")
+    for d in detections:
+        if d.get("skill_id") != "CO":
+            continue
+        combined = " ".join(d.get("lines", [])).lower()
+        if any(pat in combined for pat in _self_correct):
+            d["skill_id"] = "MR"
+            d["skill_name"] = "Mid-Range"
+            d["points"] = 1.35
+            d["gate_note"] = "CO rejected: self-correction pattern"
+
+    # Fix 5: ES for naked/Nathan/bacon parallel-swap → downgrade to LU
+    for d in detections:
+        if d.get("skill_id") != "ES":
+            continue
+        combined = " ".join(d.get("lines", [])).lower()
+        if "naked" in combined and "nathan" in combined and "bacon" in combined:
+            d["skill_id"] = "LU"
+            d["skill_name"] = "Layup"
+            d["points"] = 1.25
+            d["gate_note"] = "ES rejected: parallel swap (naked/Nathan/bacon) is not a linear chain"
 
     # Fix 3: per-line dedup — each quoted line belongs to at most 1 positive skill
     # Build map: normalized_line -> best detection index
@@ -403,6 +452,35 @@ def apply_hard_gates(detections: list[dict]) -> tuple[list[dict], list[dict]]:
     return accepted, rejected
 
 
+# ---------------------------------------------------------------------------
+# Window-level response cache  (avoids re-calling API on repeated runs)
+# Cache key = md5(model + system_prompt + user_message)
+# Invalidated automatically when prompt or model changes.
+# ---------------------------------------------------------------------------
+_CACHE_FILE = _here / ".llm_cache.json"
+
+def _cache_load() -> dict:
+    try:
+        if _CACHE_FILE.exists():
+            return json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {}
+
+def _cache_save(cache: dict) -> None:
+    try:
+        _CACHE_FILE.write_text(json.dumps(cache, ensure_ascii=False, indent=None),
+                               encoding="utf-8")
+    except Exception:
+        pass
+
+def _cache_key(model: str, system: str, user: str) -> str:
+    import hashlib
+    return hashlib.md5(f"{model}\x00{system}\x00{user}".encode("utf-8")).hexdigest()
+
+_CACHE: dict = _cache_load()
+
+
 def query_ollama(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
     """Query LLM API (Gemini or OpenAI). Returns {"message": {"content": "<text>"}}"""
     # Normalize unicode chars that cause ASCII codec errors on Windows
@@ -419,20 +497,47 @@ def query_ollama(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
             print("ERROR: OPENAI_API_KEY environment variable not set.", file=sys.stderr)
             sys.exit(1)
         oai_model = model if model != DEFAULT_MODEL else DEFAULT_MODEL_OPENAI
+
+        # Cache check
+        ck = _cache_key(oai_model, safe_system, safe_msg)
+        if ck in _CACHE:
+            print("  [cache hit]", file=sys.stderr)
+            return {"message": {"content": _CACHE[ck]}}
+
         client = _OpenAI(api_key=api_key)
-        try:
-            resp = client.chat.completions.create(
-                model=oai_model,
-                messages=[
-                    {"role": "system", "content": safe_system},
-                    {"role": "user", "content": safe_msg},
-                ],
-                temperature=0.1,
-                max_tokens=4096,
-            )
-            text = resp.choices[0].message.content
-        except Exception as e:
-            print(f"OpenAI API error: {e}", file=sys.stderr)
+        import time as _time
+        for _attempt in range(5):
+            try:
+                resp = client.chat.completions.create(
+                    model=oai_model,
+                    messages=[
+                        {"role": "system", "content": safe_system},
+                        {"role": "user", "content": safe_msg},
+                    ],
+                    temperature=0.1,
+                    max_tokens=4096,
+                )
+                text = resp.choices[0].message.content
+                _CACHE[ck] = text
+                _cache_save(_CACHE)
+                break
+            except Exception as e:
+                err_str = str(e)
+                if "rate_limit_exceeded" in err_str or "429" in err_str:
+                    import re as _re
+                    wait_ms = 1000
+                    m = _re.search(r'try again in (\d+)ms', err_str)
+                    if m:
+                        wait_ms = int(m.group(1)) + 500
+                    else:
+                        wait_ms = (2 ** _attempt) * 2000
+                    print(f"  Rate limit hit, waiting {wait_ms}ms...", file=sys.stderr)
+                    _time.sleep(wait_ms / 1000.0)
+                    continue
+                print(f"OpenAI API error: {e}", file=sys.stderr)
+                sys.exit(1)
+        else:
+            print("OpenAI API error: rate limit retries exhausted.", file=sys.stderr)
             sys.exit(1)
         return {"message": {"content": text}}
 
@@ -526,7 +631,7 @@ def make_windows(lines: list[str],
     return results
 
 
-def deduplicate_detections(detections: list[dict]) -> list[dict]:
+def deduplicate_detections(detections: list[dict], total_lines: int = 45) -> list[dict]:
     """
     Merge detections collected across multiple windows.
 
@@ -535,11 +640,15 @@ def deduplicate_detections(detections: list[dict]) -> list[dict]:
 
     After dedup, per-round max count limits are enforced (prevents each window
     awarding the same skill type for every interesting bar it sees).
+
+    Caps scale with round length. Base calibration = 45 lines.
+    Structural skills (OGR, 4QP, SD, etc.) are always capped at 1 regardless.
     """
     import difflib
+    import math
 
-    # Max times each skill can fire in one round
-    MAX_COUNTS: dict[str, int] = {
+    # Base caps calibrated for ~45-line rounds
+    BASE_COUNTS: dict[str, int] = {
         "FCS": 1, "OGR": 1, "4QP": 1,
         "SD": 1, "HCS": 1, "ALY": 2, "AND1": 2,
         "FB": 2, "ES": 2, "STL": 3, "SPM": 1,
@@ -548,6 +657,19 @@ def deduplicate_detections(detections: list[dict]) -> list[dict]:
         "MR": 2, "LU": 1, "FL": 2, "REB": 2, "NLP": 2,
         "DRG": 2, "FA": 2, "CAR": 2, "OFT": 2,
     }
+
+    # Skills that represent unique battle moments — never scale
+    STRUCTURAL = {"FCS", "OGR", "4QP", "SD", "HCS", "SPM", "PM", "BKW"}
+
+    # Scale factor: proportional to length, max 3x, rounded up
+    scale = min(total_lines / 45.0, 3.0)
+
+    MAX_COUNTS: dict[str, int] = {}
+    for sid, base in BASE_COUNTS.items():
+        if sid in STRUCTURAL:
+            MAX_COUNTS[sid] = base
+        else:
+            MAX_COUNTS[sid] = max(base, math.ceil(base * scale))
 
     def _lines_similar(a_lines: list[str], b_lines: list[str]) -> bool:
         """True if any (a, b) line pair shares ≥60% of characters."""
@@ -595,6 +717,39 @@ def deduplicate_detections(detections: list[dict]) -> list[dict]:
         counts[sid] = counts.get(sid, 0) + 1
 
     return accepted
+
+
+def _is_deliberate_dd(detection: dict) -> bool:
+    """
+    Returns True if a DD detection is deliberate rhetorical repetition-for-emphasis
+    rather than a craft mistake.
+
+    Rule: similarity >= 93% = deliberate in battle rap context.
+    Battle rap performances are rehearsed; any >=93% near-repeat is intentional
+    (e.g. "is" vs "are", "this" vs "a" grammatical variants for emphasis).
+
+    Calibration:
+    - A.Ward "is/are" and "this/a" variants: 97% → filtered (deliberate)
+    - JakkBoy "whiff/whip" content change: 91% → kept (genuine DD)
+
+    Evidence format: 'Near-repeat (similarity 97%): "line_a" ≈ "line_b"'
+    """
+    import re
+
+    if detection.get("skill_id") != "DD":
+        return False
+
+    evidence = detection.get("evidence", detection.get("lines", []))
+    if not evidence:
+        return False
+
+    for ev_str in evidence:
+        if not isinstance(ev_str, str):
+            continue
+        m = re.search(r'similarity\s+(\d+)%', ev_str)
+        if m and int(m.group(1)) >= 93:
+            return True
+    return False
 
 
 def hybrid_score(
@@ -700,9 +855,13 @@ def hybrid_score(
         print(f"  Window {win_idx + 1}/{len(windows)} "
               f"(lines {start + 1}–{end + 1}): {len(win_detections)} raw detections",
               file=sys.stderr)
+        # Brief pause between windows to avoid TPM rate limits on long rounds
+        if win_idx < len(windows) - 1:
+            import time as _time
+            _time.sleep(1.5)
 
     # Step 3: Dedup across windows, then apply hard gates
-    semantic_deduped = deduplicate_detections(all_semantic_raw)
+    semantic_deduped = deduplicate_detections(all_semantic_raw, total_lines=total_lines)
     print(f"  After dedup: {len(all_semantic_raw)} → {len(semantic_deduped)} detections",
           file=sys.stderr)
 
@@ -726,16 +885,25 @@ def hybrid_score(
     final_detections: list[dict] = []
 
     for d in trusted:
-        if d["skill_id"] not in all_rejected_ids:
-            final_detections.append({
-                "skill_id": d["skill_id"],
-                "skill_name": d["skill_name"],
-                "points": d["points"],
-                "direction": d["direction"],
-                "source": "rule_engine",
-                "lines": d.get("evidence", [])[:2],
-                "reason": f"Rule engine: {'; '.join(d.get('evidence', [])[:1])}",
-            })
+        if d["skill_id"] in all_rejected_ids:
+            continue
+        if _is_deliberate_dd(d):
+            print(
+                f"  DD filtered: deliberate rhetorical repeat "
+                f"(grammatical variant only) — evidence: "
+                f"{d.get('evidence', [])[:1]}",
+                file=sys.stderr,
+            )
+            continue
+        final_detections.append({
+            "skill_id": d["skill_id"],
+            "skill_name": d["skill_name"],
+            "points": d["points"],
+            "direction": d["direction"],
+            "source": "rule_engine",
+            "lines": d.get("evidence", [])[:2],
+            "reason": f"Rule engine: {'; '.join(d.get('evidence', [])[:1])}",
+        })
 
     for d in semantic_accepted:
         if d["skill_id"] not in RULE_ENGINE_TRUSTED:
@@ -781,12 +949,8 @@ def main():
     ap.add_argument("--battler", "-b", default=None)
     ap.add_argument("--opponent-bars", help="Opponent's bars as inline text (for STL detection)")
     ap.add_argument("--opponent-file", help="Path to file containing opponent's bars")
-    ap.add_argument("--provider", choices=["gemini", "openai"], default="gemini",
-                    help="LLM provider: gemini (GOOGLE_API_KEY) or openai (OPENAI_API_KEY)")
     args = ap.parse_args()
-
-    global _PROVIDER
-    _PROVIDER = args.provider
+    # Provider locked to OpenAI in this specialized version
 
     if args.file:
         text = Path(args.file).read_text(encoding="utf-8")
