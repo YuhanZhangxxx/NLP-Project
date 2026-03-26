@@ -510,6 +510,12 @@ def format_output(file_path, text, original_text, pipe, th_good=0.5, show_lines=
     return "\n".join(output)
 
 def main():
+    # Fix Windows console encoding for emoji output
+    import io
+    if hasattr(sys.stdout, 'buffer') and sys.stdout.encoding and \
+            sys.stdout.encoding.lower() not in ('utf-8', 'utf8'):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
     ap = argparse.ArgumentParser(
         description="Rap battle/song judge with quality score and detailed analysis",
         formatter_class=argparse.RawDescriptionHelpFormatter,

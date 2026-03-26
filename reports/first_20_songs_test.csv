@@ -1,21 +1,11 @@
 id,true_label,pred,p_good,p_bad,correct,split,text_preview
-G_6 Minutes.clean,good,good,0.9043405719916799,0.09565942800832006,True,train,"﻿Yeah, I go by the name of Cassidy, The Hustler And I brought two of my niggaz with me And we about ..."
-G_A 100 Clip.clean,good,good,0.7042354611754793,0.2957645388245207,True,train,"﻿It's time to revitalize, I'm the boy niggas idolize And I'm not surprised, I'm the truth, but a lot..."
-G_AM to PM.clean,good,good,0.6998101694710565,0.30018983052894355,True,train,"﻿[Intro] I still move work, from the A.M. to the P.M. Niggas got beef, I'm gonna spray 'em when I se..."
-G_B-Boy Stance Dirty.clean,good,good,0.7409759907210481,0.25902400927895186,True,train,﻿Chilling in the club in my B-boy stance My hoodie on with my gun in my pants Chilling in the club i...
-G_Bellybutton.clean,good,good,0.786622025496255,0.21337797450374496,True,train,"﻿Yeah, Cassidy, huh This one of my joints for the ladies, man Lift up ya shirt, let me see ya bellyb..."
-G_Blood Pressure Dirty.clean,good,good,0.6917345545637524,0.30826544543624756,True,train,﻿(Chorus - Swizz Beatz) My blood pressure's buildin' (4x) It's Cassidy trick It's Cassidy bitch It's...
-G_Cassidy - Get No Better Official Video ft Mashonda.clean,good,good,0.6097389456726283,0.3902610543273717,True,test,"﻿""Get No Better"" (feat. Mashonda) Ladies and Gentlemen Swizz, swizz, swizz Hey ho, hey ho, hey ho, h..."
-G_Cassidy - Shaq  Kobe Freestyle.clean,good,good,0.7125314238712798,0.28746857612872023,True,train,"﻿[Verse] Get me said, he don't feel y’all dudes Then he said ""I should kill y'all dudes"", he was dam..."
-G_Cassidy- Respectfully.clean,good,good,0.9111801099677159,0.08881989003228408,True,train,"﻿[Verse 1: Cassidy] The same thing that make you laugh, you gon' cry from Laugh now, cry later but y..."
-G_Fabolous - Affirmative Action.clean,good,good,0.7783486340076569,0.22165136599234314,True,train,"﻿""Affirmative Action"" (feat. AZ, Foxy Brown, and Cormega (The Firm)) This is what, this what they wa..."
-G_Fabolous - Ain t Nuthin Ta F ck Wit Freestyle Friday Night Freestyles Mixtapes.clean,good,good,0.6454998448327661,0.3545001551672339,True,train,"﻿""Ain't Nuthin Ta Fuck Wit Freestyle"" Yeah, live from the 718, the World Famous DJ Clue Desert Storm..."
-G_Fabolous - All For The Love Freestyle.clean,good,good,0.7306936625411178,0.2693063374588822,True,train,"﻿[Verse 1] When you think of me, you think of the nicest My slow flow's a modern-day crisis, these f..."
-G_Fabolous - BAS Freestyle Friday Night Freestyles Mixtapes.clean,good,good,0.6895018332151213,0.31049816678487874,True,train,"﻿[Intro] Oh, I like this, this made me feel like '98 That know what I did in '98, boy That know what..."
-G_Fabolous - Been Around The World Freestyle Friday Night Freestyles Mixtapes.clean,good,good,0.7480686662756846,0.2519313337243154,True,train,﻿[Intro: DJ Clue & Fabolous] Live from the 718 World Famous DJ Clue.. Desert Storm The Kid Loso... W...
-G_Fabolous - Black Girl Lost Freestyle.clean,good,good,0.6534595162696326,0.3465404837303674,True,test,"﻿[Intro] Hello? What's up, girl? Ain't nothin', this nigga in here stressin' Talkin' that old off-th..."
-G_Fabolous - Cold Summer.clean,good,good,0.7167655243910923,0.2832344756089077,True,valid,﻿You ever have a cold in the summer? That shit be the worst It gets better though How they turn a to...
-G_Fabolous - Lifes A Bitch ft Jadakiss.clean,good,good,0.6128761984348983,0.38712380156510173,True,valid,"﻿""Life's A Bitch Freestyle"" (feat. Jadakiss) ""Let's keep it real, son. Count that money. Know what I..."
-G_Fabolous - Monday Night Mixtape 98.clean,good,good,0.7726641588257191,0.22733584117428085,True,train,"﻿""Monday Night Mixtape 98 Freestyle"" (feat. Noreaga) Yeah it don't stop baby, it don't stop Yo yo yo..."
-G_Fabolous - Quiet Storm Freestyle.clean,good,good,0.9374548784401474,0.06254512155985259,True,train,"﻿Friday night freestyles We done seen it all, been thru it all It's quiet I put my lifetime in betwe..."
-G_Fabolous - Selfish Freestyle Official Video.clean,good,good,0.6156090724698116,0.38439092753018844,True,test,"﻿intro Ay, givers gotta set limits ′Cause the takers never do Put yourself first (yourself first, yo..."
+G_6 Minutes.clean,good,good,0.8803135752658725,0.1196864247341275,True,unknown,"﻿Yeah, I go by the name of Cassidy, The Hustler And I brought two of my niggaz with me And we about ..."
+G_A 100 Clip.clean,good,good,0.6736954368826842,0.3263045631173158,True,unknown,"﻿It's time to revitalize, I'm the boy niggas idolize And I'm not surprised, I'm the truth, but a lot..."
+G_AM to PM.clean,good,good,0.6644977306661797,0.3355022693338203,True,unknown,"﻿[Intro] I still move work, from the A.M. to the P.M. Niggas got beef, I'm gonna spray 'em when I se..."
+G_B-Boy Stance Dirty.clean,good,good,0.7149924561905447,0.28500754380945525,True,unknown,﻿Chilling in the club in my B-boy stance My hoodie on with my gun in my pants Chilling in the club i...
+G_Bellybutton.clean,good,good,0.7535983647429894,0.24640163525701064,True,unknown,"﻿Yeah, Cassidy, huh This one of my joints for the ladies, man Lift up ya shirt, let me see ya bellyb..."
+G_Blood Pressure Dirty.clean,good,good,0.6562197465535481,0.3437802534464519,True,unknown,﻿(Chorus - Swizz Beatz) My blood pressure's buildin' (4x) It's Cassidy trick It's Cassidy bitch It's...
+G_Cassidy - Get No Better Official Video ft Mashonda.clean,good,good,0.5663194483764084,0.43368055162359165,True,unknown,"﻿""Get No Better"" (feat. Mashonda) Ladies and Gentlemen Swizz, swizz, swizz Hey ho, hey ho, hey ho, h..."
+G_Cassidy - Shaq  Kobe Freestyle.clean,good,good,0.6760436519211496,0.32395634807885043,True,unknown,"﻿[Verse] Get me said, he don't feel y’all dudes Then he said ""I should kill y'all dudes"", he was dam..."
+G_Cassidy- Respectfully.clean,good,good,0.886876314195381,0.11312368580461896,True,unknown,"﻿[Verse 1: Cassidy] The same thing that make you laugh, you gon' cry from Laugh now, cry later but y..."
+G_Fabolous - Affirmative Action.clean,good,good,0.7411603206926727,0.2588396793073273,True,unknown,"﻿""Affirmative Action"" (feat. AZ, Foxy Brown, and Cormega (The Firm)) This is what, this what they wa..."

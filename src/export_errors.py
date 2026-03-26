@@ -17,7 +17,7 @@ def main():
     df = pd.read_csv(args.input_csv)
     man_path = pathlib.Path("models/manifest.json")
     assert man_path.exists(), "Run training first to create models/manifest.json"
-    manifest = json.loads(man_path.read_text(encoding="utf-8"))
+    manifest = json.loads(man_path.read_text(encoding="utf-8-sig"))
     if args.model:
         model_path = args.model
     else:

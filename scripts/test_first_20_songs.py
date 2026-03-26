@@ -24,10 +24,13 @@ def main():
         print(f"Error: Model file not found: {model_path}", file=sys.stderr)
         sys.exit(1)
     
-    if "v2_plus" in str(model_path):
-        src_dir = Path(__file__).parent / "src"
-        if str(src_dir) not in sys.path:
-            sys.path.insert(0, str(src_dir))
+    # Always add src/ and skill_detection/ to path for v2_plus models
+    src_dir = Path(__file__).parent.parent / "src"
+    skill_dir = Path(__file__).parent.parent / "skill_detection"
+    if str(src_dir) not in sys.path:
+        sys.path.insert(0, str(src_dir))
+    if str(skill_dir) not in sys.path:
+        sys.path.insert(0, str(skill_dir))
     
     print(f"Loading model: {model_path}", file=sys.stderr)
     pipe = joblib.load(model_path)
