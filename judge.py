@@ -12,36 +12,16 @@ warnings.filterwarnings('ignore', category=UserWarning)
 def find_latest_model():
     """Automatically find the latest model file"""
     models_dir = pathlib.Path(__file__).parent / "models"
-    
-    # First, look for LR v2 plus models (better performance, more features)
-    lr_v2_patterns = [
-        "song_lr_v2_plus_*.joblib",
-        "song_lr_v2_plus.joblib"
-    ]
-    for pattern in lr_v2_patterns:
-        matches = sorted(models_dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
+
+    # Search in subdirs: lr_v2_plus, lr_v1, nb_v1 (priority order)
+    for subdir in ["lr_v2_plus", "lr_v1", "nb_v1"]:
+        subpath = models_dir / subdir
+        if not subpath.exists():
+            continue
+        matches = list(subpath.glob("*.joblib"))
         if matches:
-            return matches[0]
-    
-    # Then, look for LR v1 models (more stable, no extra dependencies)
-    lr_v1_patterns = [
-        "song_lr_v1_*.joblib",
-        "song_lr_v1_tweaked.joblib"
-    ]
-    for pattern in lr_v1_patterns:
-        matches = sorted(models_dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
-        if matches:
-            return matches[0]
-    
-    # Finally, look for NB models
-    nb_patterns = [
-        "song_nb_v1_*.joblib"
-    ]
-    for pattern in nb_patterns:
-        matches = sorted(models_dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
-        if matches:
-            return matches[0]
-    
+            return sorted(matches, key=lambda p: p.stat().st_mtime, reverse=True)[0]
+
     return None
 
 def main():

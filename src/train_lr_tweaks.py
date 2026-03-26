@@ -1,4 +1,4 @@
-﻿import argparse, json
+import argparse, json
 from pathlib import Path
 import pandas as pd
 from joblib import dump
@@ -71,8 +71,9 @@ res = [eval_on("valid"), eval_on("test")]
 for r in res:
     print(f"{r['split']}: acc={r['accuracy']:.4f}  macro-F1={r['macro_f1']:.4f}  cm=[tn={r['tn']}, fp={r['fp']}, fn={r['fn']}, tp={r['tp']}]")
 
-models = Path("models"); models.mkdir(exist_ok=True, parents=True)
-outp = models/"song_lr_v1_tweaked.joblib"
+models = Path("models")
+(models / "lr_v1").mkdir(exist_ok=True, parents=True)
+outp = models / "lr_v1" / "song_lr_v1_tweaked.joblib"
 dump(pipe, outp)
 print(f"Saved tweaked model → {outp}")
 

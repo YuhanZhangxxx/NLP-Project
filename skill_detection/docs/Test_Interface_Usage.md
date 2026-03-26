@@ -1,156 +1,136 @@
-# 说唱技巧检测测试工具使用指南
+# Rap Technique Detection Test Tool – Usage Guide
 
-## 概述
+## Overview
 
-`skill_detection/test_rap_techniques.py` 是一个统一的测试工具，提供两种独立的接口：
-1. **交互模式** - 用于手动测试和调试
-2. **数据集测试** - 用于批量评估准确率
+`skill_detection/test/test_rap_techniques.py` is a unified test script with two separate interfaces:
 
-## 接口说明
+1. **Interactive mode** – for manual testing and debugging  
+2. **Dataset test** – for batch evaluation (accuracy, recall, F1, etc.)
 
-### 1. 交互模式（默认）
+## Interfaces
 
-**启动方式：**
+### 1. Interactive mode (default)
+
+**How to run:**
 ```bash
-# 默认启动交互模式
-python skill_detection/test_rap_techniques.py
+# Default: interactive mode
+python skill_detection/test/test_rap_techniques.py
 
-# 显式指定交互模式
-python skill_detection/test_rap_techniques.py --interactive
-python skill_detection/test_rap_techniques.py -i
+# Explicit interactive
+python skill_detection/test/test_rap_techniques.py --interactive
+python skill_detection/test/test_rap_techniques.py -i
 ```
 
-**功能：**
-- **单条测试**：直接输入文本，按回车测试
-- **批量测试**：输入多行，每行以数字开头（如: `1. 文本`），自动进入批量模式
-- **退出**：输入 `quit` 或 `exit`
+**Features:**
+- **Single test**: type a line of text and press Enter
+- **Batch test**: enter multiple lines starting with a number (e.g. `1. text`); script enters batch mode
+- **Quit**: type `quit` or `exit`
 
-**使用示例：**
+**Example:**
 ```
-请输入文本（或批量测试的第一行）: After that round I pulled the clip titled it Where Your Voice Went and dropped the documentary
-[显示结果]
+Enter text (or first line for batch): After that round I pulled the clip titled it Where Your Voice Went and dropped the documentary
+[results shown]
 
-请输入文本（或批量测试的第一行）: 1. Your first test text
-[批量模式] 继续输入更多测试用例，输入空行或 'end' 结束:
+Enter text (or first line for batch): 1. Your first test text
+[Batch mode] Enter more lines; empty line or 'end' to finish:
 2. Your second test text
 3. Your third test text
-[输入空行或 'end' 结束]
-[显示批量测试结果]
+[empty line or 'end']
+[batch results]
 ```
 
-### 2. 数据集测试接口
+### 2. Dataset test
 
-**启动方式：**
+**How to run:**
 ```bash
-python skill_detection/test_rap_techniques.py --test-dataset
-python skill_detection/test_rap_techniques.py --dataset
-python skill_detection/test_rap_techniques.py -d
+python skill_detection/test/test_rap_techniques.py --test-dataset
+python skill_detection/test/test_rap_techniques.py --dataset
+python skill_detection/test/test_rap_techniques.py -d
 ```
 
-**功能：**
-- 自动加载 `skill_detection/data/full_court_shot_correct.txt` 和 `skill_detection/data/full_court_shot_incorrect.txt`
-- 测试所有正确和错误例子
-- 输出详细的准确率、召回率、F1分数等指标
-- 显示混淆矩阵和分数分布
+**Behavior:**
+- Loads `skill_detection/data/full_court_shot_correct.txt` and `skill_detection/data/full_court_shot_incorrect.txt`
+- Runs all positive and negative examples
+- Prints accuracy, recall, F1, confusion matrix, score distribution
 
-**输出示例：**
+**Example output:**
 ```
 ======================================================================
-Full-Court Shot 数据集测试
+Full-Court Shot dataset test
 ======================================================================
 
-正确例子: 30 个
-错误例子: 22 个
+Correct examples: 30
+Incorrect examples: 22
 ======================================================================
 
-[测试正确例子]
+[Testing correct examples]
 ----------------------------------------------------------------------
 [OK] #1 : 100.0% - After that round the whole room watched your confi...
-[OK] #2 : 100.0% - Mid battle your tough talk got repossessed I print...
 ...
-[测试错误例子]
+[Testing incorrect examples]
 ----------------------------------------------------------------------
 [OK] #1 :   0.0% - After that round the room felt some kind of vibe I...
 [FAIL] #2 : 100.0% - Mid battle the energy was different I clipped the ...
 ...
 ```
 
-### 3. 命令行单条测试
+### 3. Single test from command line
 
-**启动方式：**
 ```bash
-python skill_detection/test_rap_techniques.py "你的文本"
+python skill_detection/test/test_rap_techniques.py "Your text here"
 ```
 
-**示例：**
-```bash
-python skill_detection/test_rap_techniques.py "After that round I pulled the clip titled it Where Your Voice Went and dropped the documentary"
-```
-
-### 4. 从文件批量测试
+### 4. Batch test from file
 
 **Windows PowerShell:**
 ```powershell
-Get-Content skill_detection/data/full_court_shot_correct.txt | python skill_detection/test_rap_techniques.py
+Get-Content skill_detection/data/full_court_shot_correct.txt | python skill_detection/test/test_rap_techniques.py
 ```
 
 **Linux/Mac:**
 ```bash
-python skill_detection/test_rap_techniques.py < skill_detection/data/full_court_shot_correct.txt
+python skill_detection/test/test_rap_techniques.py < skill_detection/data/full_court_shot_correct.txt
 ```
 
-## 接口独立性
+## Interface independence
 
-两个接口完全独立：
+- **`test_dataset()`** – dataset test; loads data files and prints metrics  
+- **`run_interactive_mode()`** – interactive; single and batch input  
+- **`main()`** – entry point; chooses interface from CLI; default is interactive  
 
-- **`test_dataset()`** - 数据集测试接口
-  - 独立的函数
-  - 自动加载数据集文件
-  - 输出评估指标
+## Command-line options
 
-- **`run_interactive_mode()`** - 交互模式接口
-  - 独立的函数
-  - 支持单条和批量测试
-  - 用户交互式输入
+| Option | Description |
+|--------|-------------|
+| (none) | Interactive mode (default) |
+| `--interactive`, `-i` | Interactive mode |
+| `--test-dataset`, `--dataset`, `-d` | Run dataset test |
+| `--help`, `-h` | Help |
+| `"text"` | Single test with given text |
 
-- **`main()`** - 统一入口
-  - 根据命令行参数选择接口
-  - 默认进入交互模式
-
-## 命令行参数
-
-| 参数 | 说明 |
-|------|------|
-| 无参数 | 默认进入交互模式 |
-| `--interactive`, `-i` | 显式指定交互模式 |
-| `--test-dataset`, `--dataset`, `-d` | 运行数据集测试 |
-| `--help`, `-h` | 显示帮助信息 |
-| `"文本"` | 命令行单条测试 |
-
-## 代码结构
+## Code layout
 
 ```
-skill_detection/test_rap_techniques.py
-├── format_technique_score()      # 格式化分数显示
-├── test_text()                   # 单条测试
-├── parse_batch_input()           # 解析批量输入
-├── batch_test()                  # 批量测试
-├── test_dataset()                # 数据集测试接口（独立）
-├── run_interactive_mode()         # 交互模式接口（独立）
-└── main()                        # 统一入口
+skill_detection/test/test_rap_techniques.py
+├── format_technique_score()   # Format score display
+├── test_text()               # Single test
+├── parse_batch_input()       # Parse batch input
+├── batch_test()              # Batch test
+├── test_dataset()            # Dataset test (standalone)
+├── run_interactive_mode()     # Interactive mode (standalone)
+└── main()                     # Entry point
 ```
 
-## 常见问题
+## FAQ
 
-### Q: 如何运行数据集测试？
-A: `python skill_detection/test_rap_techniques.py --test-dataset`
+**Q: How do I run the dataset test?**  
+A: `python skill_detection/test/test_rap_techniques.py --test-dataset`
 
-### Q: 如何进入交互模式？
-A: 直接运行 `python skill_detection/test_rap_techniques.py` 或 `python skill_detection/test_rap_techniques.py --interactive`
+**Q: How do I use interactive mode?**  
+A: Run `python skill_detection/test/test_rap_techniques.py` or add `--interactive`.
 
-### Q: 两个接口可以同时运行吗？
-A: 不可以，每次只能运行一个接口。通过命令行参数选择。
+**Q: Can both interfaces run at once?**  
+A: No; one interface per run, selected by arguments.
 
-### Q: 数据集测试会修改数据文件吗？
-A: 不会，数据集测试是只读的，只读取数据文件进行测试。
-
+**Q: Does the dataset test modify data files?**  
+A: No; it only reads the data files.

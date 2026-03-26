@@ -114,14 +114,14 @@ Examples:
         if args.judge_model:
             judge_cmd.extend(["--model", args.judge_model])
         else:
-            # Auto-select latest model
+            # Auto-select latest model (search in lr_v2_plus subdir)
             models_dir = Path("models")
             latest_model = None
-            for pattern in ["song_lr_v2_plus_*.joblib", "song_lr_v2_plus.joblib"]:
-                matches = sorted(models_dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
+            lr2_dir = models_dir / "lr_v2_plus"
+            if lr2_dir.exists():
+                matches = sorted(lr2_dir.glob("*.joblib"), key=lambda p: p.stat().st_mtime, reverse=True)
                 if matches:
                     latest_model = matches[0]
-                    break
             if latest_model:
                 judge_cmd.extend(["--model", str(latest_model)])
             else:

@@ -64,9 +64,9 @@ def main():
     
     # Model 1: TF-IDF + Naive Bayes
     print("Loading Model 1: TF-IDF + Naive Bayes...")
-    nb_model_path = root / "models" / "song_nb_v1_20251026.joblib"
+    nb_model_path = root / "models" / "nb_v1" / "song_nb_v1_20251026.joblib"
     if not nb_model_path.exists():
-        nb_model_path = root / "models" / "song_nb_v1_20251023.joblib"
+        nb_model_path = root / "models" / "nb_v1" / "song_nb_v1_20251023.joblib"
     
     if nb_model_path.exists():
         pipe_nb = joblib.load(nb_model_path)
@@ -82,9 +82,9 @@ def main():
     
     # Model 2: TF-IDF + Logistic Regression
     print("Loading Model 2: TF-IDF + Logistic Regression...")
-    lr_model_path = root / "models" / "song_lr_v1_20251026.joblib"
+    lr_model_path = root / "models" / "lr_v1" / "song_lr_v1_20251026.joblib"
     if not lr_model_path.exists():
-        lr_model_path = root / "models" / "song_lr_v1_20251023.joblib"
+        lr_model_path = root / "models" / "lr_v1" / "song_lr_v1_20251023.joblib"
     
     if lr_model_path.exists():
         pipe_lr = joblib.load(lr_model_path)
@@ -100,9 +100,9 @@ def main():
     
     # Model 3: LR+ (Word + Char + Stats)
     print("Loading Model 3: LR+ (Word + Char + Statistical Features)...")
-    lr_plus_model_path = root / "models" / "song_lr_v2_plus_20251026.joblib"
+    lr_plus_model_path = root / "models" / "lr_v2_plus" / "song_lr_v2_plus_20251026.joblib"
     if not lr_plus_model_path.exists():
-        lr_plus_model_path = root / "models" / "song_lr_v2_plus.joblib"
+        lr_plus_model_path = root / "models" / "lr_v2_plus" / "song_lr_v2_plus.joblib"
     
     if lr_plus_model_path.exists():
         pipe_lr_plus = joblib.load(lr_plus_model_path)

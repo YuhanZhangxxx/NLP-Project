@@ -1,45 +1,51 @@
-# 说唱技巧识别模块
+# Rap Technique Detection Module
 
-本文件夹包含所有说唱技巧识别相关的代码、数据和文档，与AI主模型分离。
+说唱技巧检测模块，包含核心检测逻辑、引擎、技能实现及文档。
 
-## 文件结构
+## 目录结构
 
 ```
 skill_detection/
-├── rap_techniques.py              # 核心技巧识别模块
-├── test_rap_techniques.py         # 测试工具（交互/批量/数据集测试）
-├── rap_techniques_README.md       # 技术文档
-├── README_RAP_TECHNIQUES.md       # 使用说明
-├── data/                          # 测试数据
-│   ├── full_court_shot_correct.txt
-│   ├── full_court_shot_incorrect.txt
-│   └── full_court_shot_test.csv
-└── docs/                          # 技术文档
-    ├── Full_Court_Shot_Detection_Explanation.md
-    ├── Full_Court_Shot_Grammar_Features.md
-    └── Test_Interface_Usage.md
+├── loader.py              # 按 skill_id 加载并调用 detect()
+├── full_court_chain.py    # 共享 patterns（capture→title→release）
+├── rap_techniques.py      # 说唱技巧特征矩阵（供 feats_extra 使用）
+├── engines/               # 核心引擎（legacy）
+│   ├── punch_strength_engine.py
+│   ├── reaction_engine.py
+│   └── structure_engine.py
+├── 1/, 2/, 3/, 4/, 5/, 6/, 7/, 8/, 9/, 10/, 11/, 17/  # 各技能实现
+├── scripts/               # 工具脚本
+│   ├── find_misclassified.py
+│   └── analyze_misclassified.py
+├── test/                  # 测试与示例
+├── data/                  # 测试数据
+└── docs/                  # 文档
+    ├── Rap_Techniques_Usage.md
+    ├── Rap_Techniques_Technical.md
+    ├── Punch_Strength_Improvements.md
+    ├── Test_Interface_Usage.md
+    └── Full_Court_Shot_Grammar_Features.md
 ```
 
-## 使用方法
+## 快速使用
 
-### 交互测试
+### 交互式测试
 ```bash
-python skill_detection/test_rap_techniques.py --interactive --methods
+python skill_detection/test/test_rap_techniques.py --interactive --methods
 ```
 
 ### 数据集测试
 ```bash
-python skill_detection/test_rap_techniques.py --test-dataset
+python skill_detection/test/test_rap_techniques.py --test-dataset
 ```
 
-### 命令行测试
+### 误分类分析
 ```bash
-python skill_detection/test_rap_techniques.py "your text here" --methods
+python skill_detection/scripts/find_misclassified.py
+python skill_detection/scripts/analyze_misclassified.py
 ```
 
-## 在主模型中使用
-
-主模型（`src/` 目录下的文件）通过以下方式导入：
+## 主模型集成
 
 ```python
 import sys
@@ -50,17 +56,33 @@ if str(skill_dir) not in sys.path:
 from rap_techniques import detect_rap_techniques
 ```
 
-## 识别的技巧
+## Completed Skills
 
-1. **Full-Court Shot** (+5.0分) - 高风险高回报的bar
-2. **Slam Dunk** (+4.25分) - 震撼性的重击
-3. **Half-Court Shot** (+3.75分) - 创意风险命中
-4. **Alley-Oop/Assist** (+3.5分) - 多人配合
+| ID | Name | Status |
+|----|------|--------|
+| 1 | Full Court Shot | Completed |
+| 2 | Slam Dunk | Completed |
+| 3 | Half Court Shot | Completed |
+| 4 | Alley Oop Assist | Completed |
+| 5 | And-1 | Completed |
+| 6 | Fast Break | Completed |
+| 7 | 3 Pointer | Completed |
+| 8 | Euro Step | Completed |
+| 9 | Steal | Completed |
+| 10 | Crossover | Completed |
+| 11 | Hook Shot | Completed |
+| 17 | Midrange | Completed |
 
-## 击溃语义识别方法
+## Rap Techniques (LR features)
 
-- **方法1**: 关键词库识别（基于预定义关键词和模式）
-- **方法2**: 词性识别（基于NLTK词性标注）
+1. **Full-Court Shot** (+5.0 pts) – 高风险高回报 bar
+2. **Slam Dunk** (+4.25 pts) – 震撼 punch
+3. **Half-Court Shot** (+3.75 pts) – 创意风险 hit
+4. **Alley-Oop/Assist** (+3.5 pts) – 团队配合
+5. **And-1** – 顶着防守得分
+6. **Euro Step** – 欧洲步躲避
+7. **Steal** – 抢断 flow
+8. **Crossover** – 变向 flow
+9. **Hook Shot** – 勾手/意外角度
 
-两种方法使用OR逻辑并列，只要任一方法识别到击溃语义即可。
-
+详见 `docs/Rap_Techniques_Usage.md` 和 `docs/Rap_Techniques_Technical.md`。

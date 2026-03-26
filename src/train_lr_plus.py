@@ -1,4 +1,4 @@
-﻿import argparse, json
+import argparse, json
 from pathlib import Path
 import numpy as np, pandas as pd
 from joblib import dump
@@ -100,8 +100,8 @@ if __name__=="__main__":
     evaluate(pipe, va, "valid")
     evaluate(pipe, te, "test")
 
-    Path("models").mkdir(parents=True, exist_ok=True)
-    outm = Path("models")/"song_lr_v2_plus.joblib"
+    (Path("models") / "lr_v2_plus").mkdir(parents=True, exist_ok=True)
+    outm = Path("models") / "lr_v2_plus" / "song_lr_v2_plus.joblib"
     dump(pipe, outm)
     print(f"Saved → {outm}")
 

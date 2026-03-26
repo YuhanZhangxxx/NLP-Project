@@ -133,12 +133,13 @@ def main():
     }
     (reports_dir/"run_config.json").write_text(json.dumps(cfg, indent=2), encoding="utf-8")
 
-    # Save models
+    # Save models (by type: nb_v1, lr_v1)
     models_dir = pathlib.Path("models")
-    models_dir.mkdir(exist_ok=True, parents=True)
+    (models_dir / "nb_v1").mkdir(exist_ok=True, parents=True)
+    (models_dir / "lr_v1").mkdir(exist_ok=True, parents=True)
     stamp = datetime.datetime.now().strftime("%Y%m%d")
-    nb_path = models_dir/f"song_nb_v1_{stamp}.joblib"
-    lr_path = models_dir/f"song_lr_v1_{stamp}.joblib"
+    nb_path = models_dir / "nb_v1" / f"song_nb_v1_{stamp}.joblib"
+    lr_path = models_dir / "lr_v1" / f"song_lr_v1_{stamp}.joblib"
     joblib.dump(pipe_nb, nb_path)
     joblib.dump(pipe_lr, lr_path)
 

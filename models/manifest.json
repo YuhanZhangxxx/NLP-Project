@@ -1,4 +1,4 @@
-﻿{
+{
     "splits":  {
                    "train":  140,
                    "valid":  17,
@@ -11,7 +11,7 @@
                      "keep_apostrophe":  true,
                      "sublinear_tf":  true
                  },
-    "model":  "models/song_lr_v2_plus_20251026.joblib",
+    "model":  "models/lr_v2_plus/song_lr_v2_plus_20251026.joblib",
     "thresholds":  {
                        "strict":  0.5,
                        "default":  0.45,
