@@ -4,3 +4,15 @@ __pycache__/
 *.pyc
 *.pyo
 skill_detection/.llm_cache.json
+
+# ML pipeline (main branch only)
+src/
+scripts/
+models/
+reports/
+audio/
+docs/
+data/raw/
+data/processed/
+data/raw_txt/
+data/transcribed_lyrics/
