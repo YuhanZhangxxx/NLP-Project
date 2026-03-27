@@ -1,35 +1,43 @@
 """
-Rap technique detection module.
-Each technique has its own detector for easier maintenance and extension.
-Delegates to skill_detection.funcs for reusable detection logic.
+说唱技巧识别模块
+每个技巧都有独立的检测函数，方便维护和扩展
 """
-import sys
-from pathlib import Path
-
-# Ensure project root in path for skill_detection package imports
-_root = Path(__file__).resolve().parent.parent
-if str(_root) not in sys.path:
-    sys.path.insert(0, str(_root))
-
+import re
 import numpy as np
 from scipy import sparse
 
-from skill_detection.funcs import (
-    detect_full_court_shot,
-    detect_full_court_chain,
-    detect_slam_dunk,
-    detect_half_court_shot,
-    detect_alley_oop,
-    detect_and_1,
-    detect_euro_step,
-    detect_steal,
-    detect_crossover,
-    detect_hook_shot,
-    detect_victim_state_by_pos,
-    VICTIM_STATE_KEYWORDS,
-    VICTIM_STATE_PATTERNS,
-)
-from skill_detection.funcs.nltk_utils import NLTK_AVAILABLE
+# 尝试导入NLTK用于词性标注（方法2：词性识别）
+try:
+    import nltk
+    from nltk import pos_tag, word_tokenize
+    from nltk.corpus import stopwords
+    NLTK_AVAILABLE = True
+    # 确保必要的NLTK数据已下载
+    try:
+        nltk.data.find('tokenizers/punkt_tab')
+    except LookupError:
+        try:
+            nltk.download('punkt_tab', quiet=True)
+        except:
+            try:
+                nltk.download('punkt', quiet=True)
+            except:
+                pass
+    try:
+        nltk.data.find('taggers/averaged_perceptron_tagger_eng')
+    except LookupError:
+        try:
+            nltk.download('averaged_perceptron_tagger_eng', quiet=True)
+        except:
+            try:
+                nltk.data.find('taggers/averaged_perceptron_tagger')
+            except LookupError:
+                try:
+                    nltk.download('averaged_perceptron_tagger', quiet=True)
+                except:
+                    pass
+except ImportError:
+    NLTK_AVAILABLE = False
 
 
 # ============================================================================
@@ -798,58 +806,26 @@ TECHNIQUE_INFO = {
     "full_court_shot": {
         "name": "Full-Court Shot",
         "points": "+5.0 Points",
-        "description": "High-risk high-reward bar, unexpected punch"
+        "description": "高风险高回报的bar，意外的重击"
     },
     "slam_dunk": {
         "name": "Slam Dunk",
         "points": "+4.25 Points",
-        "description": "Room shaker, instant explosive reaction"
+        "description": "震撼性的重击，瞬间爆炸反应"
     },
     "half_court_shot": {
         "name": "Half-Court Shot",
         "points": "+3.75 Points",
-        "description": "Creative risk, lands"
+        "description": "创意风险命中，完美落地"
     },
     "alley_oop": {
         "name": "Alley-Oop/Assist",
         "points": "+3.5 Points",
-        "description": "Team/collab"
+        "description": "多人配合，团队协作"
     }
 }
 
-
 def get_technique_info(technique_key: str) -> dict:
-    """Return technique info."""
+    """获取技巧信息"""
     return TECHNIQUE_INFO.get(technique_key, {})
 
-
-# ============================================================================
-# Main: detect all techniques
-# ============================================================================
-
-def detect_rap_techniques(texts):
-    """
-    Detect all rap technique features.
-
-    Returns (n, 9) sparse matrix; columns: Full-Court, Slam Dunk, Half-Court, Alley-Oop,
-    And-1, Euro Step, Steal, Crossover, Hook Shot.
-    Args: texts (list of strings). Returns: scipy.sparse.csr_matrix, shape (len(texts), 9).
-    """
-    rows = []
-    for text in texts:
-        s = text if isinstance(text, str) else ""
-        full_court_score = detect_full_court_shot(s)
-        slam_dunk_score = detect_slam_dunk(s)
-        half_court_score = detect_half_court_shot(s)
-        alley_oop_score = detect_alley_oop(s)
-        and_1_score = detect_and_1(s)
-        euro_step_score = detect_euro_step(s)
-        steal_score = detect_steal(s)
-        crossover_score = detect_crossover(s)
-        hook_shot_score = detect_hook_shot(s)
-        rows.append([
-            full_court_score, slam_dunk_score, half_court_score, alley_oop_score,
-            and_1_score, euro_step_score, steal_score, crossover_score, hook_shot_score
-        ])
-    A = np.asarray(rows, dtype=float)
-    return sparse.csr_matrix(A)

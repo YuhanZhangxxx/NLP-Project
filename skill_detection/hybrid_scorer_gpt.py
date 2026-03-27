@@ -752,6 +752,40 @@ def _is_deliberate_dd(detection: dict) -> bool:
     return False
 
 
+def _auto_split_lines(text: str) -> str:
+    """
+    If text looks like a wall-of-text (Deepgram raw output with no line breaks),
+    split it into per-bar lines using sentence boundaries and comma breaks.
+    Leaves already-formatted text (multiple short lines) unchanged.
+    """
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    if not lines:
+        return text
+    words = text.split()
+    avg_words = len(words) / len(lines)
+    if avg_words <= 15:
+        return text  # already properly formatted
+
+    # Split on sentence-ending punctuation
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    result = []
+    for sent in sentences:
+        sent = sent.strip()
+        if not sent:
+            continue
+        # Further split long sentences on commas
+        if len(sent.split()) > 18:
+            parts = re.split(r',\s+', sent)
+            result.extend(p.strip() for p in parts if p.strip())
+        else:
+            result.append(sent)
+    reformatted = '\n'.join(result)
+    print(f"  [auto-split] Wall-of-text detected ({len(lines)} raw lines, "
+          f"avg {avg_words:.0f} words/line) → split into {len(result)} lines",
+          file=sys.stderr)
+    return reformatted
+
+
 def hybrid_score(
     text: str,
     model: str = DEFAULT_MODEL,
@@ -759,6 +793,7 @@ def hybrid_score(
     battler: str = None,
     opponent_bars: str = None,
 ) -> dict:
+    text = _auto_split_lines(text)
     # Step 1: Rule engine (full text)
     print("Step 1: Running rule engine...", file=sys.stderr)
     rule_result = score_round_json(text, round_number=round_number, battler=battler)
