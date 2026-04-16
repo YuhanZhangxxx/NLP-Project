@@ -416,6 +416,7 @@ def detect_full_court_shot(text: str) -> float:
         r'\b(stage)\s+felt\s+like\s+history',
         r'\b(hype)\s+was\s+somewhere',
     ]
+    # Any ONE weak phrase cancels the victim-state claim — first match wins.
     for weak_pattern in weak_expressions:
         if re.search(weak_pattern, s_lower):
             has_victim_state = False

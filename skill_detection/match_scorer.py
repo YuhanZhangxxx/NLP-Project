@@ -76,7 +76,8 @@ DEFAULT_TIE_THRESHOLD = 0.75
 
 def _round_winner(score_a: float, score_b: float, tie_threshold: float) -> str:
     diff = score_a - score_b
-    if abs(diff) < tie_threshold:
+    # <= so that exactly equal scores tie even when tie_threshold=0.
+    if abs(diff) <= tie_threshold:
         return "tie"
     return "A" if diff > 0 else "B"
 
@@ -91,7 +92,13 @@ def _verdict_summary(a_wins: float, b_wins: float, battler_a: str, battler_b: st
 
 
 def score_match(payload: dict) -> dict:
-    """Score an N-round match. Pure function: no I/O."""
+    """
+    Score an N-round match. Pure function: no I/O.
+
+    This function RAISES on bad input (ValueError, LLMError, etc.).
+    The schema_version=1 error envelope is only guaranteed on the CLI
+    path (main()). Library callers must catch exceptions themselves.
+    """
     rounds_input = payload.get("rounds") or []
     if not rounds_input:
         raise ValueError("payload.rounds must be a non-empty list")

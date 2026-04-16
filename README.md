@@ -99,11 +99,10 @@ pip install -r requirements.txt
 Locked versions:
 ```
 openai==2.30.0
+python-dotenv==1.0.1
 nltk==3.9.2
 numpy==1.26.4
 scipy==1.12.0
-scikit-learn==1.4.2
-joblib==1.4.2
 ```
 
 ### 4. Create `.env` file

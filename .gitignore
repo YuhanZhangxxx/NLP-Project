@@ -5,7 +5,8 @@ __pycache__/
 *.pyo
 skill_detection/.llm_cache.json
 
-# ML pipeline (main branch only)
+# Main-branch artifacts (ML pipeline, docs, legacy data) — these dirs may
+# exist locally on a shared worktree but are not part of the beta deployment.
 src/
 scripts/
 models/
@@ -17,5 +18,7 @@ data/processed/
 data/raw_txt/
 data/transcribed_lyrics/
 data/transcripts/
+
+# IDE / assistant tooling
 .cursor/
 .claude/

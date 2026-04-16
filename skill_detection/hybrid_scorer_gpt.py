@@ -21,6 +21,7 @@ Environment:
 """
 import argparse
 import difflib
+import hashlib
 import json
 import math
 import os
@@ -472,7 +473,6 @@ def _cache_save(cache: dict) -> None:
         pass
 
 def _cache_key(model: str, system: str, user: str) -> str:
-    import hashlib
     return hashlib.md5(f"{model}\x00{system}\x00{user}".encode("utf-8")).hexdigest()
 
 _CACHE: dict = _cache_load()
@@ -704,8 +704,6 @@ def _is_deliberate_dd(detection: dict) -> bool:
 
     Evidence format: 'Near-repeat (similarity 97%): "line_a" ≈ "line_b"'
     """
-    import re
-
     if detection.get("skill_id") != "DD":
         return False
 
@@ -755,9 +753,16 @@ def _correct_slang(text: str) -> str:
 # Wordplay markers used to detect "craft" in short openers.
 # If the opening line is < 8 words AND has none of these, OGR is blocked
 # without consulting the LLM.
+# Wordplay markers that *disqualify* the short-opener block. We want the
+# noun-comparison "like" ("silent like a panther"), not the verb "like"
+# ("I like burgers") or the flippant "feels like shit". Use narrow patterns.
 _OGR_CRAFT_MARKERS = re.compile(
-    r"\b(like|as if|as a|feel like|than a|than the|"  # similes / comparisons
-    r"more .* than|less .* than)\b",                   # comparatives
+    r"\b("
+    r"like (?:a|an|the|that|those|you|this)\b|"   # simile: "like a ..."
+    r"as if\b|as a\b|"                            # similes
+    r"than (?:a|an|the)\b|"                       # comparative: "than a ..."
+    r"more \w+ than\b|less \w+ than\b"            # explicit comparative
+    r")",
     re.IGNORECASE,
 )
 
@@ -893,6 +898,9 @@ def hybrid_score(
     for win_idx, (start, end, win_text) in enumerate(windows):
         is_opener = (start == 0)
         is_closer = (end >= total_lines - 2)  # last window or second-to-last
+        # For rounds < WINDOW_SIZE lines, the single window is BOTH opener and
+        # closer. The branching below checks opener first, so 4QP is dropped
+        # on short rounds; the LLM sees only the opener position_note.
 
         if is_opener and not block_ogr:
             position_note = (

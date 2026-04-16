@@ -19,7 +19,7 @@ Skill Taxonomy (35 skills)
     Highlights (23): FCS, SD, HCS, ALY, AND1, FB, 3PT, ES, STL, CO, HS,
                      OGR, 4QP, SPM, PM, PNR, ISO, BKW, MR, LU, REB, NLP, FL
     Mistakes   ( 7): OFT, CAR, DRG, FA, TVL, DD, CHK
-    Fouls      ( 5): BRS, TECH, PC, TTO, BV
+    Fouls      ( 5): OOB, TECH, PC, GTD, BV
 
 Skills requiring live observation (crowd/timing/physical) are intentionally
 excluded — they cannot be reliably inferred from transcript text alone.
@@ -146,10 +146,10 @@ SKILL_REGISTRY = [
     ("double_dribble",      "DD",   "Double Dribble",        -2.00, "mistake",   0.50),
     ("choke",               "CHK",  "Turnover / Choke",      -2.75, "mistake",   0.50),
     # ---- Fouls (negative) ----
-    ("out_of_bounds",       "BRS",  "Out of Bounds",         -2.25, "foul",      0.60),
+    ("out_of_bounds",       "OOB",  "Out of Bounds",         -2.25, "foul",      0.60),
     ("technical_foul",      "TECH", "Technical Foul",        -3.00, "foul",      0.65),
     ("physical_contact",    "PC",   "Defensive Foul",        -3.00, "foul",      0.70),
-    ("goaltending",         "TTO",  "Goaltending",           -3.50, "foul",      0.60),
+    ("goaltending",         "GTD",  "Goaltending",           -3.50, "foul",      0.60),
     ("boundary_violation",  "BV",   "Boundary Violation",    -4.00, "foul",      0.70),
 ]
 
