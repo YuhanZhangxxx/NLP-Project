@@ -114,11 +114,11 @@ LU   Layup           +1.25  Simple effective bar with a clean double meaning. Mu
 FL   Floater         +0.75  Light clever wordplay with a clear hook. Vague or ambiguous lines DO NOT qualify.
 
 MISTAKE SKILLS (negative — craft failures only, NOT for offensive content):
-DRG  Backcourt Viol  -1.25  Pure filler lines, adds nothing
 FA   Forced Angle    -1.35  Connection clearly forced/awkward
 DD   Double Dribble  -2.00  Near-verbatim repetition of lines (RULE ENGINE HANDLES THIS)
 TVL  Travel/Stumble  -1.50  [um],[uh],actual stutter — NOT [inaudible] (RULE ENGINE HANDLES THIS)
 CHK  Choke/Turnover  -2.75  Forgetting, restarting (RULE ENGINE HANDLES THIS)
+(Pure filler lines — DRG — are stripped pre-LLM as ad-libs.)
 
 FOULS (rare):
 OOB  Out of Bounds   -2.25  Structural round violation
@@ -150,11 +150,6 @@ SPM (Spin Move) REJECTED:
 ✗ "You think you hot... you not" — too vague. SPM needs a specific claim X then specific reversal to not-X.
 ✗ "You rich but spend it wrong" — an observation, not a setup/reversal flip. Award CO or MR instead.
 → If there is no clear "you are X" SETUP followed by "actually you are the OPPOSITE" flip, it is NOT SPM.
-
-OGR (Out-the-Gate) REJECTED — ABSOLUTE RULE:
-✗ "Welcome to hell." — REJECTED. 3 words, zero craft. Do NOT award OGR for this line under any circumstances.
-✗ Any opening line under 8 words with no wordplay, metaphor, or specific attack — REJECTED.
-→ "Setting the tone" or "authoritative" alone is NOT enough. OGR requires an opening that demonstrates actual craft.
 
 CO (Crossover) REJECTED — ABSOLUTE RULE:
 ✗ "Just like a commercial. No it's like infomercial." — REJECTED. Do NOT award CO for this line. EVER. "No it's like infomercial" is a self-correction, not a direction change.
@@ -251,7 +246,7 @@ def build_llm_prompt(text: str, rule_findings: list[dict],
 
     return f"""{header}
 {opponent_str}{findings_str}
-YOUR TASK: Find all SEMANTIC skills in THESE LINES ONLY (SD, FCS, ES, SPM, 3PT, HS, OGR, 4QP, FB, STL, CO, MR, LU, FL, DRG, FA, etc.).
+YOUR TASK: Find all SEMANTIC skills in THESE LINES ONLY (SD, FCS, ES, SPM, 3PT, HS, OGR, 4QP, FB, STL, CO, MR, LU, FL, FA, etc.).
 Do NOT detect DD, TVL, or CHK — the rule engine already handles those.
 Only report skills clearly present in the lines below. If nothing notable is here, return empty semantic_detections.
 
@@ -311,7 +306,7 @@ CRITICAL JSON RULES:
 - "rejected_rule_detections": list ONLY DD/TVL/CHK skill IDs from the rule engine that you disagree with
 - "semantic_detections": list ALL skills YOU detect (positive and negative) — this is where you put everything
 - DO NOT put semantic skills (SD, ES, HS, FB, etc.) in confirmed/rejected_rule_detections
-- DO NOT penalize a line with DRG or FA if you already awarded it a positive skill"""
+- DO NOT penalize a line with FA if you already awarded it a positive skill"""
 
 
 def post_process_detections(detections: list[dict]) -> list[dict]:
@@ -515,6 +510,15 @@ def call_llm(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
                 max_tokens=4096,
             )
             text = resp.choices[0].message.content
+            # Log OpenAI prompt-cache hit ratio (system prompt re-use)
+            usage = getattr(resp, "usage", None)
+            if usage is not None:
+                prompt_toks = getattr(usage, "prompt_tokens", 0)
+                details = getattr(usage, "prompt_tokens_details", None)
+                cached = getattr(details, "cached_tokens", 0) if details else 0
+                if prompt_toks:
+                    print(f"  [api] prompt={prompt_toks} cached={cached} "
+                          f"({100 * cached / prompt_toks:.0f}%)", file=sys.stderr)
             _CACHE[ck] = text
             _cache_save(_CACHE)
             break
@@ -718,6 +722,103 @@ def _is_deliberate_dd(detection: dict) -> bool:
     return False
 
 
+# Battle-rap slang frequently mistranscribed by Whisper / Deepgram.
+# Pattern -> replacement (case-insensitive, word-boundary aware).
+# Add new entries only after observing actual mistakes in data/transcripts/.
+_SLANG_CORRECTIONS: list[tuple[str, str]] = [
+    # weapons / props
+    (r"\btech knives\b", "tech nines"),
+    (r"\bblip jam\b", "blick jam"),
+    (r"\bblip(?= pop| spray| boom)", "blick"),
+    (r"\bglock 40\b", "Glock 40"),
+    # AAVE words Whisper often spells exotically
+    (r"\bglissies\b", "glizzies"),
+    (r"\bglissys\b", "glizzies"),
+    # religious refs (battle rap regulars)
+    (r"\bchris(t)? on biases\b", "christened biases"),
+    (r"\bchurch bands\b", "church vans"),
+    (r"\bchurch vets\b", "church vans"),
+    # bars-vs-bars common misses
+    (r"\blet'?s love\b(?= I'?ll send| I send)", "let fly"),
+    (r"\bain'?t a cracker cuz in your heart you ain'?t got no hate for my (car|con)\b",
+     "ain't a cracker cuz in your heart you ain't got no hate for my kind"),
+]
+
+
+def _correct_slang(text: str) -> str:
+    """Apply known transcription error fixes before scoring. Token-neutral."""
+    for pattern, repl in _SLANG_CORRECTIONS:
+        text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
+    return text
+
+
+# Wordplay markers used to detect "craft" in short openers.
+# If the opening line is < 8 words AND has none of these, OGR is blocked
+# without consulting the LLM.
+_OGR_CRAFT_MARKERS = re.compile(
+    r"\b(like|as if|as a|feel like|than a|than the|"  # similes / comparisons
+    r"more .* than|less .* than)\b",                   # comparatives
+    re.IGNORECASE,
+)
+
+
+# Standalone ad-lib lines that contribute no skill content. Drop entire
+# lines that match (≥80% of words are ad-lib filler). Don't strip mid-bar
+# occurrences — "you know what I'm saying" inside a real bar can still be
+# a delivery beat.
+_ADLIB_PATTERNS = [
+    re.compile(r"^(yo|yeah|uh-?huh|okay|alright|aight|check it( out)?)\b[\s,.\-]*$", re.IGNORECASE),
+    re.compile(r"^(you know( what)?( i)?[\'']?m sayin[\'g]?|feel me|ya feel me)\b[\s,.\-]*$", re.IGNORECASE),
+    re.compile(r"^(yeah\s+)+yeah\b[\s,.\-]*$", re.IGNORECASE),  # "yeah yeah yeah ..."
+    re.compile(r"^(let'?s go|let'?s get it|come on)\b[\s,.\-!]*$", re.IGNORECASE),
+]
+
+
+def _strip_adlib_lines(text: str) -> str:
+    """
+    Drop whole lines that consist only of crowd-call ad-libs. Run AFTER
+    _auto_split_lines (otherwise it skews the avg-words-per-line heuristic).
+    """
+    kept = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            kept.append(line)
+            continue
+        if any(p.match(stripped) for p in _ADLIB_PATTERNS):
+            continue  # drop
+        kept.append(line)
+    return "\n".join(kept)
+
+
+def _should_block_ogr(text: str) -> bool:
+    """
+    Block OGR when the round's opening "phrase" is short and generic. Looks
+    at the first ~10 words (not the whole first line), since wall-of-text
+    transcripts can squash many bars into one long line.
+
+    Block iff the opening phrase (first 10 words OR up to first sentence
+    boundary) lacks any wordplay marker AND matches a generic-opener
+    pattern (welcome / yo / what's up / let's go / etc.).
+    """
+    # Get the first non-blank line, then the first chunk up to a sentence/comma break.
+    first_line = next((l.strip() for l in text.splitlines() if l.strip()), "")
+    if not first_line:
+        return False
+    # First 10 words of the round (LLM tends to award OGR on this opening phrase).
+    chunk_words = first_line.split()[:10]
+    chunk = " ".join(chunk_words)
+    if _OGR_CRAFT_MARKERS.search(chunk):
+        return False  # has wordplay markers
+    # Generic-opener phrase patterns; if any appears within first 10 words, block.
+    generic = re.compile(
+        r"\b(welcome to (hell|the show)|let'?s go|"
+        r"yo what'?s up|what'?s up|aye yo|this is the )\b",
+        re.IGNORECASE,
+    )
+    return bool(generic.search(chunk))
+
+
 def _auto_split_lines(text: str) -> str:
     """
     If text looks like a wall-of-text (Deepgram raw output with no line breaks),
@@ -759,7 +860,10 @@ def hybrid_score(
     battler: str = None,
     opponent_bars: str = None,
 ) -> dict:
+    text = _correct_slang(text)
     text = _auto_split_lines(text)
+    text = _strip_adlib_lines(text)
+    block_ogr = _should_block_ogr(text)
     # Step 1: Rule engine (full text)
     print("Step 1: Running rule engine...", file=sys.stderr)
     # score_round_json() serializes via RoundSummary.to_dict() which exposes
@@ -790,11 +894,16 @@ def hybrid_score(
         is_opener = (start == 0)
         is_closer = (end >= total_lines - 2)  # last window or second-to-last
 
-        if is_opener:
+        if is_opener and not block_ogr:
             position_note = (
                 "ROUND POSITION: THIS IS THE OPENING WINDOW (first lines of the round). "
                 "REQUIRED: If the battler opens with authority, confidence, or a strong hook, AWARD OGR (+2.00). "
                 "The first strong bar in the round is the OGR candidate. Do NOT award 4QP here."
+            )
+        elif is_opener and block_ogr:
+            position_note = (
+                "ROUND POSITION: opening window. The opening line is too short / generic "
+                "to qualify for OGR — DO NOT award OGR. Do NOT award 4QP here either."
             )
         elif is_closer:
             position_note = (
@@ -843,7 +952,7 @@ def hybrid_score(
 
         win_detections = llm_result.get("semantic_detections", [])
         # Enforce position rules in Python (model sometimes ignores prompt instructions)
-        if not is_opener:
+        if not is_opener or block_ogr:
             win_detections = [d for d in win_detections if d.get("skill_id") != "OGR"]
         if not is_closer:
             win_detections = [d for d in win_detections if d.get("skill_id") != "4QP"]
