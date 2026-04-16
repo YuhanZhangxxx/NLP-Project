@@ -1,29 +1,32 @@
 #!/usr/bin/env python
 """
 Hybrid FCPBRL scorer: rule engine (skill_engine.py) + OpenAI GPT API LLM.
-GPT specialized version — uses OPENAI_API_KEY, defaults to gpt-4o-mini.
+Uses OPENAI_API_KEY, defaults to gpt-4o-mini.
 
 Pipeline:
   1. Rule engine runs first  → reliable DD, TVL structural detections
-  2. Text split into overlapping 6-line windows (stride=4)
+  2. Text split into overlapping 10-line windows (stride=7)
   3. Each window scored by LLM with position context (opener/closer/middle)
   4. required_checks hard gates applied in Python for ES/FCS/SPM/STL
   5. Detections deduped across windows (same skill + overlapping quoted lines → same bar)
   6. Results merged: rule engine wins on structural, LLM wins on semantic
 
 Usage:
-    python skill_detection/hybrid_scorer.py --file lyrics.txt [--battler "Name"] [--round 1]
-    python skill_detection/hybrid_scorer.py --file lyrics.txt --opponent-file prev_round.txt
-    python skill_detection/hybrid_scorer.py "some text"
+    python skill_detection/hybrid_scorer_gpt.py --file lyrics.txt [--battler "Name"] [--round 1]
+    python skill_detection/hybrid_scorer_gpt.py --file lyrics.txt --opponent-file prev_round.txt
+    python skill_detection/hybrid_scorer_gpt.py "some text"
 
 Environment:
-    GOOGLE_API_KEY — required, set your Gemini API key
+    OPENAI_API_KEY — required, set your OpenAI API key
 """
 import argparse
+import difflib
 import json
+import math
 import os
-import sys
 import re
+import sys
+import time
 from pathlib import Path
 
 _here = Path(__file__).parent
@@ -31,7 +34,14 @@ if str(_here) not in sys.path:
     sys.path.insert(0, str(_here))
 
 # Auto-load .env file from project root (parent of skill_detection/)
-def _load_dotenv():
+try:
+    from dotenv import load_dotenv
+    for candidate in [_here / ".env", _here.parent / ".env"]:
+        if candidate.exists():
+            load_dotenv(candidate, override=False)
+            break
+except ImportError:
+    # Fallback if python-dotenv is unavailable
     for candidate in [_here / ".env", _here.parent / ".env"]:
         if candidate.exists():
             for line in candidate.read_text(encoding="utf-8").splitlines():
@@ -44,16 +54,12 @@ def _load_dotenv():
                 if k and k not in os.environ:
                     os.environ[k] = v
             break
-_load_dotenv()
+
+
+class LLMError(RuntimeError):
+    """Raised when the LLM API call fails (missing key, exhausted retries, etc.)."""
 
 from skill_engine import score_round_json
-
-try:
-    from google import genai
-    from google.genai import types as genai_types
-    _GENAI_AVAILABLE = True
-except ImportError:
-    _GENAI_AVAILABLE = False
 
 try:
     from openai import OpenAI as _OpenAI
@@ -62,8 +68,6 @@ except ImportError:
     _OPENAI_AVAILABLE = False
 
 DEFAULT_MODEL = "gpt-4o-mini"
-DEFAULT_MODEL_OPENAI = "gpt-4o-mini"
-_PROVIDER = "openai"  # locked: OpenAI GPT specialized version
 
 WINDOW_SIZE = 10   # lines per window
 WINDOW_OVERLAP = 3  # lines shared with previous window (stride = WINDOW_SIZE - WINDOW_OVERLAP)
@@ -320,8 +324,6 @@ def post_process_detections(detections: list[dict]) -> list[dict]:
     5. ES for naked/Nathan/bacon parallel-swap pattern is downgraded to LU.
     6. Per-line dedup: same quoted line can only be claimed by the highest-value skill.
     """
-    import difflib
-
     # Fix 1: FL direction
     for d in detections:
         if d.get("skill_id") == "FL":
@@ -385,7 +387,7 @@ def post_process_detections(detections: list[dict]) -> list[dict]:
             d["points"] = 1.25
             d["gate_note"] = "ES rejected: parallel swap (naked/Nathan/bacon) is not a linear chain"
 
-    # Fix 3: per-line dedup — each quoted line belongs to at most 1 positive skill
+    # Fix 6: per-line dedup — each quoted line belongs to at most 1 positive skill
     # Build map: normalized_line -> best detection index
     line_owner: dict[str, int] = {}  # line_key -> index in detections list
     for idx, d in enumerate(detections):
@@ -481,89 +483,56 @@ def _cache_key(model: str, system: str, user: str) -> str:
 _CACHE: dict = _cache_load()
 
 
-def query_ollama(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
-    """Query LLM API (Gemini or OpenAI). Returns {"message": {"content": "<text>"}}"""
+def call_llm(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
+    """Query OpenAI Chat Completions API. Returns {"message": {"content": "<text>"}}"""
     # Normalize unicode chars that cause ASCII codec errors on Windows
     _uni = str.maketrans({'\u2014': '--', '\u2026': '...', '\u2192': '->', '\u2260': '!='})
     safe_system = SYSTEM_PROMPT.translate(_uni)
     safe_msg = user_msg.translate(_uni)
 
-    if _PROVIDER == "openai":
-        if not _OPENAI_AVAILABLE:
-            print("ERROR: openai not installed. Run: pip install openai", file=sys.stderr)
-            sys.exit(1)
-        api_key = os.environ.get("OPENAI_API_KEY", "")
-        if not api_key:
-            print("ERROR: OPENAI_API_KEY environment variable not set.", file=sys.stderr)
-            sys.exit(1)
-        oai_model = model if model != DEFAULT_MODEL else DEFAULT_MODEL_OPENAI
-
-        # Cache check
-        ck = _cache_key(oai_model, safe_system, safe_msg)
-        if ck in _CACHE:
-            print("  [cache hit]", file=sys.stderr)
-            return {"message": {"content": _CACHE[ck]}}
-
-        client = _OpenAI(api_key=api_key)
-        import time as _time
-        for _attempt in range(5):
-            try:
-                resp = client.chat.completions.create(
-                    model=oai_model,
-                    messages=[
-                        {"role": "system", "content": safe_system},
-                        {"role": "user", "content": safe_msg},
-                    ],
-                    temperature=0.1,
-                    max_tokens=4096,
-                )
-                text = resp.choices[0].message.content
-                _CACHE[ck] = text
-                _cache_save(_CACHE)
-                break
-            except Exception as e:
-                err_str = str(e)
-                if "rate_limit_exceeded" in err_str or "429" in err_str:
-                    import re as _re
-                    wait_ms = 1000
-                    m = _re.search(r'try again in (\d+)ms', err_str)
-                    if m:
-                        wait_ms = int(m.group(1)) + 500
-                    else:
-                        wait_ms = (2 ** _attempt) * 2000
-                    print(f"  Rate limit hit, waiting {wait_ms}ms...", file=sys.stderr)
-                    _time.sleep(wait_ms / 1000.0)
-                    continue
-                print(f"OpenAI API error: {e}", file=sys.stderr)
-                sys.exit(1)
-        else:
-            print("OpenAI API error: rate limit retries exhausted.", file=sys.stderr)
-            sys.exit(1)
-        return {"message": {"content": text}}
-
-    # Default: Gemini
-    if not _GENAI_AVAILABLE:
-        print("ERROR: google-genai not installed. Run: pip install google-genai", file=sys.stderr)
-        sys.exit(1)
-    api_key = os.environ.get("GOOGLE_API_KEY", "")
+    if not _OPENAI_AVAILABLE:
+        raise LLMError("openai not installed. Run: pip install openai")
+    api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
-        print("ERROR: GOOGLE_API_KEY environment variable not set.", file=sys.stderr)
-        sys.exit(1)
-    client = genai.Client(api_key=api_key)
-    try:
-        response = client.models.generate_content(
-            model=model,
-            contents=safe_msg,
-            config=genai_types.GenerateContentConfig(
-                system_instruction=safe_system,
+        raise LLMError("OPENAI_API_KEY environment variable not set.")
+
+    # Cache check
+    ck = _cache_key(model, safe_system, safe_msg)
+    if ck in _CACHE:
+        print("  [cache hit]", file=sys.stderr)
+        return {"message": {"content": _CACHE[ck]}}
+
+    client = _OpenAI(api_key=api_key)
+    for _attempt in range(5):
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": safe_system},
+                    {"role": "user", "content": safe_msg},
+                ],
                 temperature=0.1,
-                max_output_tokens=4096,
-            ),
-        )
-        text = response.text
-    except Exception as e:
-        print(f"Gemini API error: {e}", file=sys.stderr)
-        sys.exit(1)
+                max_tokens=4096,
+            )
+            text = resp.choices[0].message.content
+            _CACHE[ck] = text
+            _cache_save(_CACHE)
+            break
+        except Exception as e:
+            err_str = str(e)
+            if "rate_limit_exceeded" in err_str or "429" in err_str:
+                wait_ms = 1000
+                m = re.search(r'try again in (\d+)ms', err_str)
+                if m:
+                    wait_ms = int(m.group(1)) + 500
+                else:
+                    wait_ms = (2 ** _attempt) * 2000
+                print(f"  Rate limit hit, waiting {wait_ms}ms...", file=sys.stderr)
+                time.sleep(wait_ms / 1000.0)
+                continue
+            raise LLMError(f"OpenAI API error: {e}") from e
+    else:
+        raise LLMError("OpenAI API error: rate limit retries exhausted.")
     return {"message": {"content": text}}
 
 
@@ -644,9 +613,6 @@ def deduplicate_detections(detections: list[dict], total_lines: int = 45) -> lis
     Caps scale with round length. Base calibration = 45 lines.
     Structural skills (OGR, 4QP, SD, etc.) are always capped at 1 regardless.
     """
-    import difflib
-    import math
-
     # Base caps calibrated for ~45-line rounds
     BASE_COUNTS: dict[str, int] = {
         "FCS": 1, "OGR": 1, "4QP": 1,
@@ -796,11 +762,12 @@ def hybrid_score(
     text = _auto_split_lines(text)
     # Step 1: Rule engine (full text)
     print("Step 1: Running rule engine...", file=sys.stderr)
+    # score_round_json() serializes via RoundSummary.to_dict() which exposes
+    # detections under "lines"[i]["skills"] — there is no top-level "all_detections".
     rule_result = score_round_json(text, round_number=round_number, battler=battler)
-    rule_detections = rule_result.get("all_detections") or []
-    if not rule_detections:
-        for line in rule_result.get("lines", []):
-            rule_detections.extend(line.get("skills", []))
+    rule_detections = []
+    for line in rule_result.get("lines", []):
+        rule_detections.extend(line.get("skills", []))
 
     trusted = [d for d in rule_detections if d["skill_id"] in RULE_ENGINE_TRUSTED]
     print(f"  Rule engine: {len(trusted)} trusted detections "
@@ -851,7 +818,7 @@ def hybrid_score(
             window_info=f"(lines {start + 1}–{end + 1} of {total_lines})",
         )
 
-        llm_raw = query_ollama(user_msg, model)
+        llm_raw = call_llm(user_msg, model)
         llm_content = llm_raw.get("message", {}).get("content", "")
         llm_result = extract_json(llm_content)
 
@@ -866,7 +833,7 @@ def hybrid_score(
             )
             if "qwen3" in model.lower():
                 retry_msg += "\n/no_think"
-            llm_raw2 = query_ollama(retry_msg, model)
+            llm_raw2 = call_llm(retry_msg, model)
             llm_content = llm_raw2.get("message", {}).get("content", "")
             llm_result = extract_json(llm_content)
             if "error" in llm_result:
@@ -892,8 +859,7 @@ def hybrid_score(
               file=sys.stderr)
         # Brief pause between windows to avoid TPM rate limits on long rounds
         if win_idx < len(windows) - 1:
-            import time as _time
-            _time.sleep(1.5)
+            time.sleep(1.5)
 
     # Step 3: Dedup across windows, then apply hard gates
     semantic_deduped = deduplicate_detections(all_semantic_raw, total_lines=total_lines)
@@ -1000,9 +966,13 @@ def main():
     elif args.opponent_bars:
         opponent_bars = args.opponent_bars
 
-    result = hybrid_score(text, model=args.model,
-                          round_number=args.round, battler=args.battler,
-                          opponent_bars=opponent_bars)
+    try:
+        result = hybrid_score(text, model=args.model,
+                              round_number=args.round, battler=args.battler,
+                              opponent_bars=opponent_bars)
+    except LLMError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(1)
     print(json.dumps(result, indent=2, ensure_ascii=False))
 
 

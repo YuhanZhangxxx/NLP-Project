@@ -1,18 +1,18 @@
 """
-说唱技巧识别模块
-每个技巧都有独立的检测函数，方便维护和扩展
+Rap technique detection module.
+Each technique has its own detector function for maintainability and extension.
 """
 import re
 import numpy as np
 from scipy import sparse
 
-# 尝试导入NLTK用于词性标注（方法2：词性识别）
+# Try to import NLTK for POS tagging (Method 2: POS-based detection)
 try:
     import nltk
     from nltk import pos_tag, word_tokenize
     from nltk.corpus import stopwords
     NLTK_AVAILABLE = True
-    # 确保必要的NLTK数据已下载
+    # Ensure required NLTK data is downloaded
     try:
         nltk.data.find('tokenizers/punkt_tab')
     except LookupError:
@@ -41,10 +41,10 @@ except ImportError:
 
 
 # ============================================================================
-# Full-Court Shot (+5.0 Points) - 高风险高回报的bar
+# Full-Court Shot (+5.0 Points) - high-risk, high-reward bar
 # ============================================================================
 
-# 稀有强词（高权重，明确指向Full-Court Shot）
+# Rare strong words (high weight, clearly indicating Full-Court Shot)
 FULL_COURT_STRONG_KEYWORDS = {
     'documentary', 'investigation', 'autopsy', 'missing persons',
     'museum', 'exhibit', 'exhibition', 'gallery', 'showcase',
@@ -52,7 +52,7 @@ FULL_COURT_STRONG_KEYWORDS = {
     'disappearance', 'vanished', 'erased', 'flatlined', 'folded', 'logged off'
 }
 
-# 中等强度词（中权重）
+# Medium-strength words (medium weight)
 FULL_COURT_MEDIUM_KEYWORDS = {
     'camera', 'clip', 'clipped', 'replay', 'recording', 'video', 'tape', 'film',
     'display', 'installation', 'opened', 'opening', 'unveiled', 'debuted', 'launched',
@@ -60,75 +60,75 @@ FULL_COURT_MEDIUM_KEYWORDS = {
     'disappeared', 'faded', 'gone', 'empty', 'body', 'left', 'went'
 }
 
-# 泛词（低权重或可能扣分）
+# Generic words (low weight or potentially penalized)
 FULL_COURT_WEAK_KEYWORDS = {
     'moment', 'scene', 'shot', 'frame', 'got', 'made', 'created', 'built',
     'released', 'published', 'streamed', 'pulled', 'grabbed', 'took'
 }
 
-# 击溃语义关键词（必须出现至少一类）
+# Victim-state keywords (at least one category must appear)
 VICTIM_STATE_KEYWORDS = {
-    # 消失/死亡/崩溃
+    # Disappearance / death / collapse
     'vanished', 'disappeared', 'erased', 'flatlined', 'folded', 'logged off',
     'died', 'dead', 'gone', 'faded', 'crumbled', 'collapsed', 'vanish',
-    # 羞辱画面/状态
+    # Humiliation imagery / states
     'empty chair', 'autopsy', 'missing persons', 'wanted', 'judgment', 'verdict',
     'coroner', 'morgue', 'body bag', 'crime scene', 'evidence',
-    # 抽象概念（可能被击溃）
+    # Abstract concepts (that can be crushed)
     'confidence', 'ego', 'pride', 'bravado', 'hype', 'aura', 'momentum',
     'tough talk', 'voice cracked', 'stumbled', 'paused', 'folded', 'froze',
-    # 动作/状态（表示被击溃）
+    # Actions / states (indicating being crushed)
     'repossessed', 'stolen', 'deleted', 'rerouted', 'packed', 'shipped',
     'rage quit', 'witness protection', 'mission failure', 'loss',
-    # 环境/氛围变化（表示对手被压制）
+    # Environment / atmosphere shifts (indicating opponent is suppressed)
     'went quiet', 'went silent', 'silence', 'quiet', 'stunned', 'shook'
 }
 
-# 捕获/构建模式（单行紧凑版，避免正则空格问题，允许省略主语I）
+# Capture/construction patterns (compact single-line form to avoid regex whitespace issues; subject "I" may be omitted)
 FULL_COURT_CREATION_PATTERNS = [
-    r'\b(pulled|grabbed|captured|caught|snapped|clipped|recorded|ran|ran\s+the|got|saved)\s+(the|that|this|a|an)?\s*\w*\s*(footage|replay|recording|video|tape|film|moment|shot|scene|clip|feed)',  # 添加got, saved, feed
+    r'\b(pulled|grabbed|captured|caught|snapped|clipped|recorded|ran|ran\s+the|got|saved)\s+(the|that|this|a|an)?\s*\w*\s*(footage|replay|recording|video|tape|film|moment|shot|scene|clip|feed)',  # Added got, saved, feed
     r'\b(pulled|grabbed|captured|caught|snapped|clipped|recorded|got)\s+(the|that|this|a|an)?\s*(gps\s+history)',
     r'\b(built|constructed|assembled|erected|created)\s+(the|a|an)?\s*\w*\s*(museum|exhibit|exhibition|display|gallery|showcase|installation)',
     r'\b(printed|wrote|filed|issued|opened|logged|tracked|made|created|pushed|posted|curated|read)\s+(the|a|an)?\s*\w*\s*(receipts|paperwork|chart|report|bulletin|ticket|update|order|reel|lesson|timeline|exhibit|chapter|study|screen\s+capture|verdict|alert)',
     r'\b(pulled|grabbed|captured|caught|snapped|clipped|recorded|printed|wrote|filed|issued|opened|logged|tracked|made|created|pushed|posted|curated|read|got)\s+(the|that|this|a|an)?\s*(gps\s+history)',
 ]
 
-# 直接捕获信号（不要求后面跟footage类名词）
+# Direct capture signals (no following footage-type noun required)
 FULL_COURT_DIRECT_CAPTURE_PATTERNS = [
-    r'\b(screen\s+recorded|screen\s+captured|screen\s+capture|recorded)\b',  # screen recorded/captured直接命中
+    r'\b(screen\s+recorded|screen\s+captured|screen\s+capture|recorded)\b',  # Direct hit on screen recorded/captured
 ]
 
-# 标题命名模式（改进：不依赖引号和大写，用连接词/结尾为边界）
+# Title-naming patterns (improved: no reliance on quotes/capitalization; boundaries use connectors/end-of-string)
 FULL_COURT_TITLE_PATTERNS = [
-    r'\b(titled|named|called|labeled|tagged)\s+(it|this|that|the)\s+([^\s]+(?:\s+[^\s]+)*?)(?:\s+(?:and|then|so|$))',  # 捕获到and/then/so/结尾
-    r'\b(titled|named|called|labeled|tagged)\s+(it|this|that|the)\s+([^\s]+(?:\s+[^\s]+)*?)(?=\s+(?:and|then|so|dropped|released|opened|published|aired|premiered|streamed|uploaded|unveiled|put\s+out|broadcast|$))',  # 更严格的边界，包括aired, unveiled, put out, broadcast
-    r'\b(titled|named|called|labeled|tagged)\s+(it|this|that|the)\s+\w+',  # 备用：简单匹配
+    r'\b(titled|named|called|labeled|tagged)\s+(it|this|that|the)\s+([^\s]+(?:\s+[^\s]+)*?)(?:\s+(?:and|then|so|$))',  # Capture up to and/then/so/end
+    r'\b(titled|named|called|labeled|tagged)\s+(it|this|that|the)\s+([^\s]+(?:\s+[^\s]+)*?)(?=\s+(?:and|then|so|dropped|released|opened|published|aired|premiered|streamed|uploaded|unveiled|put\s+out|broadcast|$))',  # Stricter boundary, including aired, unveiled, put out, broadcast
+    r'\b(titled|named|called|labeled|tagged)\s+(it|this|that|the)\s+\w+',  # Fallback: simple match
 ]
 
-# 发布/开放模式（单行紧凑版，补充series/season/cut/report/case file）
+# Release/opening patterns (compact single-line form; added series/season/cut/report/case file)
 FULL_COURT_RELEASE_PATTERNS = [
-    r'\b(dropped|released|unveiled|debuted|aired|broadcast|streamed|premiered|uploaded|published|put\s+out)\s+(the|a|an)?\s*\w*\s*(documentary|investigation|film|video|tape|episode|show|report|findings|case\s+file|season|evidence|patch\s+notes|logs|screenshot|travel\s+doc|storm\s+report|unboxing|mission\s+documentary|educational\s+documentary|directors\s+cut|series|trial\s+documentary|full\s+series|cut|case|doc|file|special)',  # 添加put out, special
-    r'\b(opened|opening|launched|presented|attached|included|showed|pinned|set|played|held|posted|unveiled)\s+(the|a|an)?\s*\w*\s*(exhibit|exhibition|display|museum|gallery|show|conference|documentary|evidence|logs|screenshot|receipts|everywhere|update|on\s+repeat|it\s+downtown|it)',  # 添加unveiled it
+    r'\b(dropped|released|unveiled|debuted|aired|broadcast|streamed|premiered|uploaded|published|put\s+out)\s+(the|a|an)?\s*\w*\s*(documentary|investigation|film|video|tape|episode|show|report|findings|case\s+file|season|evidence|patch\s+notes|logs|screenshot|travel\s+doc|storm\s+report|unboxing|mission\s+documentary|educational\s+documentary|directors\s+cut|series|trial\s+documentary|full\s+series|cut|case|doc|file|special)',  # Added put out, special
+    r'\b(opened|opening|launched|presented|attached|included|showed|pinned|set|played|held|posted|unveiled)\s+(the|a|an)?\s*\w*\s*(exhibit|exhibition|display|museum|gallery|show|conference|documentary|evidence|logs|screenshot|receipts|everywhere|update|on\s+repeat|it\s+downtown|it)',  # Added unveiled it
 ]
 
-# 击溃语义模式（必须出现）
+# Victim-state patterns (must appear)
 VICTIM_STATE_PATTERNS = [
-    # 直接消失/死亡词汇
+    # Direct disappearance/death vocabulary
     r'\b(vanished|disappeared|erased|flatlined|folded|logged\s+off|died|dead|gone|faded|crumbled|collapsed|vanish)',
-    # 羞辱画面
+    # Humiliation imagery
     r'\b(empty\s+chair|autopsy|missing\s+persons|wanted|judgment|verdict|coroner|morgue|body\s+bag|crime\s+scene)',
-    # 抽象概念 + 消失动作（更严格的匹配，避免"energy was different"这种）
+    # Abstract concept + disappearance action (stricter match to avoid things like "energy was different")
     r'\b(spirit|energy|soul|ego|presence|essence|hype|confidence|pride|bravado|aura|momentum|tough\s+talk|voice|bars|act|legend|performance|scoreboard)\s+(left|went|fled|vanished|disappeared|faded|was\s+(already\s+)?gone|is\s+gone|got\s+(stolen|deleted|rerouted|repossessed|packed|shipped)|already\s+gone|cracked|stumbled|paused|folded|rage\s+quit|ended|turned\s+into|did\s+not\s+even\s+need)',
     r'\b(confidence|ego|pride|bravado|hype|aura|momentum|tough\s+talk|voice|bars|act|legend|performance)\s+(vanish|vanished|disappeared|gone|stolen|deleted|rerouted|repossessed|cracked|stumbled|paused|folded|rage\s+quit|ended|turned\s+into)',
-    # 避免匹配"energy was different"这种弱表达
-    r'\b(energy|vibe|momentum)\s+was\s+(different|off|strange)',  # 这个模式用于排除，不是匹配
-    # 消失+媒体
+    # Avoid matching weak expressions like "energy was different"
+    r'\b(energy|vibe|momentum)\s+was\s+(different|off|strange)',  # This pattern is for exclusion, not matching
+    # Disappearance + media
     r'\b(erased|vanished|disappeared|faded|gone)\s+(on|from|in)\s+(camera|film|tape|video|recording)',
-    # 被转化为证据/文件
+    # Transformed into evidence/files
     r'\b(turned|converted|transformed)\s+\w+\s+(into|to)\s+(evidence|case\s+file|paperwork|report|document)',
-    # 被发送/进入保护/失败
+    # Sent/entered protection/failure
     r'\b(sent|went|got)\s+\w+\s+(into|to)\s+(witness\s+protection|evidence|mission\s+failure)',
-    # 特定击溃表达
+    # Specific crushing expressions
     r'\b(confidence|ego|pride)\s+rage\s+quit',
     r'\b(scoreboard|stage)\s+(did\s+not\s+even\s+need|turned\s+into)',
     r'\b(momentum|act)\s+got\s+(rerouted|packed|shipped)',
@@ -136,12 +136,12 @@ VICTIM_STATE_PATTERNS = [
     r'\b(stage|courtroom)\s+turned\s+into',
     r'\b(momentum)\s+got\s+rerouted',
     r'\b(way\s+you\s+faded|you\s+faded)',
-    # 直接动作（you + 击溃动作）
+    # Direct action (you + crushing verb)
     r'\b(you|your)\s+(stumbled|froze|paused|folded|crashed|went\s+quiet|vanished|disappeared|erased|faded|gone)',
     r'\b(you|your)\s+(confidence|ego|pride|bravado|hype|aura|momentum)\s+(crashed|vanished|disappeared|erased|faded|gone|stolen|deleted)',
 ]
 
-# 反向惩罚词（出现这些词会扣分，特别是标题中的）
+# Penalty words (presence triggers score reduction, especially inside titles)
 VAGUENESS_PENALTY_WORDS = {
     'something', 'stuff', 'maybe', 'interesting', 'chapter', 'timeline', 
     'highlights', 'things', 'whatever', 'kinda', 'sort of', 'a moment',
@@ -156,33 +156,33 @@ VAGUENESS_PENALTY_WORDS = {
 
 def detect_victim_state_by_pos(text: str) -> bool:
     """
-    方法2：通过词性识别击溃语义
-    
-    识别模式：
-    1. 过去式动词（VBD/VBN）表示消失/失败动作
-    2. 某些形容词（JJ）表示失败状态
-    3. 某些名词（NN）表示失败/消失概念
-    4. 特定语法结构：you/your + 过去式动词
-    
-    返回:
-        bool: 是否检测到击溃语义
+    Method 2: Detect victim-state semantics via POS tagging.
+
+    Detection patterns:
+    1. Past-tense verbs (VBD/VBN) indicating disappearance/failure actions
+    2. Certain adjectives (JJ) indicating failure states
+    3. Certain nouns (NN) representing failure/disappearance concepts
+    4. Specific grammar structure: you/your + past-tense verb
+
+    Returns:
+        bool: Whether victim-state semantics were detected
     """
     if not NLTK_AVAILABLE:
         return False
     
     try:
-        # 分词和词性标注
+        # Tokenization and POS tagging
         tokens = word_tokenize(text.lower())
         pos_tags = pos_tag(tokens)
-        
-        # 击溃语义的动词（原形和过去式/过去分词）
+
+        # Verbs denoting victim-state semantics (base form and past/past-participle)
         defeat_verbs = {
-            # 原形
+            # Base form
             'vanish', 'disappear', 'erase', 'fade', 'collapse', 'crumble',
             'fold', 'fail', 'lose', 'fall', 'crash', 'break', 'destroy',
             'eliminate', 'defeat', 'overcome', 'conquer', 'crush', 'stumble',
             'freeze', 'pause', 'stop', 'end', 'die', 'flatline', 'quit',
-            # 过去式/过去分词
+            # Past tense / past participle
             'vanished', 'disappeared', 'erased', 'faded', 'collapsed', 'crumbled',
             'folded', 'failed', 'lost', 'fell', 'crashed', 'broke', 'broken',
             'destroyed', 'eliminated', 'defeated', 'overcame', 'overcome', 'conquered',
@@ -190,188 +190,188 @@ def detect_victim_state_by_pos(text: str) -> bool:
             'died', 'dead', 'flatlined', 'quit', 'quitted'
         }
         
-        # 击溃语义的形容词
+        # Adjectives denoting victim-state semantics
         defeat_adjectives = {
             'gone', 'dead', 'empty', 'lost', 'defeated', 'broken', 'crushed',
             'destroyed', 'eliminated', 'finished', 'over', 'done', 'stunned',
             'shocked', 'silent', 'quiet'
         }
         
-        # 击溃语义的名词
+        # Nouns denoting victim-state semantics
         defeat_nouns = {
             'loss', 'defeat', 'failure', 'collapse', 'end', 'death', 'autopsy',
             'evidence', 'verdict', 'judgment', 'missing', 'disappearance'
         }
         
-        # 检查词性模式
+        # Check POS patterns
         for i, (word, pos) in enumerate(pos_tags):
             word_lower = word.lower()
-            
-            # 1. 过去式动词（VBD）或过去分词（VBN）表示消失/失败
+
+            # 1. Past-tense (VBD) or past-participle (VBN) verbs indicating disappearance/failure
             if pos in ['VBD', 'VBN'] and word_lower in defeat_verbs:
-                # 检查上下文：前面是否有you/your，或后面有表示击溃的补语
+                # Check context: preceded by you/your, or followed by a crushing complement
                 if i > 0:
                     prev_word = pos_tags[i-1][0].lower()
                     if prev_word in ['you', 'your']:
                         return True
                 if i < len(pos_tags) - 1:
                     next_pos = pos_tags[i+1][1]
-                    if next_pos in ['NN', 'NNS', 'DT']:  # 后面跟名词或限定词
+                    if next_pos in ['NN', 'NNS', 'DT']:  # Followed by noun or determiner
                         return True
                 return True
-            
-            # 2. 形容词（JJ）表示失败状态
+
+            # 2. Adjective (JJ) indicating failure state
             if pos == 'JJ' and word_lower in defeat_adjectives:
-                # 检查是否在"was/got/became + 形容词"结构中
+                # Check whether inside "was/got/became + adjective" structure
                 if i > 0:
                     prev_word = pos_tags[i-1][0].lower()
                     if prev_word in ['was', 'got', 'became', 'turned', 'went']:
                         return True
                 return True
-            
-            # 3. 名词（NN/NNS）表示失败/消失概念
+
+            # 3. Noun (NN/NNS) indicating failure/disappearance concept
             if pos in ['NN', 'NNS'] and word_lower in defeat_nouns:
-                # 检查是否在"into/to + 名词"或"the/a/an + 名词"结构中
+                # Check whether inside "into/to + noun" or "the/a/an + noun" structure
                 if i > 0:
                     prev_word = pos_tags[i-1][0].lower()
                     if prev_word in ['into', 'to', 'the', 'a', 'an']:
                         return True
                 return True
-            
-            # 4. 特定结构：you/your + 过去式动词
+
+            # 4. Specific structure: you/your + past-tense verb
             if word_lower in ['you', 'your'] and i < len(pos_tags) - 1:
                 next_word, next_pos = pos_tags[i+1]
                 if next_pos in ['VBD', 'VBN'] and next_word.lower() in defeat_verbs:
                     return True
-        
-        # 5. 检查连续模式：抽象概念 + 过去式动词
+
+        # 5. Check sequential pattern: abstract concept + past-tense verb
         for i in range(len(pos_tags) - 1):
             word1, pos1 = pos_tags[i]
             word2, pos2 = pos_tags[i+1]
-            
-            # 抽象概念（NN） + 过去式动词（VBD/VBN）
+
+            # Abstract noun (NN) + past-tense verb (VBD/VBN)
             abstract_nouns = {'confidence', 'ego', 'pride', 'hype', 'aura', 'momentum', 'spirit', 'energy'}
-            if (pos1 in ['NN', 'NNS'] and word1.lower() in abstract_nouns and 
+            if (pos1 in ['NN', 'NNS'] and word1.lower() in abstract_nouns and
                 pos2 in ['VBD', 'VBN'] and word2.lower() in defeat_verbs):
                 return True
-        
+
         return False
-        
+
     except Exception:
-        # 如果NLTK处理失败，返回False（回退到方法1）
+        # If NLTK processing fails, return False (fallback to Method 1)
         return False
 
 def normalize_text(text: str) -> str:
     """
-    文本归一化：
-    1. 全部转小写
-    2. 把连字符合并：screen-recorded -> screen recorded
-    3. 多空格压成一个
-    4. 删除引号（考虑无标点文本）
+    Text normalization:
+    1. Lowercase everything
+    2. Merge hyphens: screen-recorded -> screen recorded
+    3. Collapse multiple spaces into one
+    4. Remove quotes (to handle unpunctuated text)
     """
     s = text.lower()
-    # 连字符合并
+    # Merge hyphenated words
     s = re.sub(r'([a-z]+)-([a-z]+)', r'\1 \2', s)
-    # 多空格压成一个
+    # Collapse multiple spaces into one
     s = re.sub(r'\s+', ' ', s)
-    # 删除引号
+    # Remove quotes
     s = s.replace('"', '').replace("'", '')
     return s.strip()
 
 def detect_full_court_shot(text: str) -> float:
     """
-    检测 Full-Court Shot 技巧
-    高风险高回报的bar，意外的重击，将事件转化为媒体内容
-    
-    核心要求：
-    1. 必须包含击溃语义（victim state）
-    2. 必须包含完整流程（creation + naming + release）
-    3. 标题命名是关键亮点
-    
-    语法特征（最强信号）：
-    - 三连动词句式：I + VERB1 + OBJ1 + VERB2 + OBJ2 + VERB3 + OBJ3
-    - 两段结构：时间框架 + 对手状态 + I + 三连动作链
-    - 连接词偏好：and, and then, so I
-    - 人称配置：you/your (受害者) + I (制作人)
+    Detect the Full-Court Shot technique.
+    High-risk, high-reward bar: an unexpected knockout that converts an event into media content.
+
+    Core requirements:
+    1. Must contain victim-state semantics
+    2. Must contain the full pipeline (creation + naming + release)
+    3. The title/naming step is the key highlight
+
+    Grammatical features (strongest signals):
+    - Triple-verb construction: I + VERB1 + OBJ1 + VERB2 + OBJ2 + VERB3 + OBJ3
+    - Two-part structure: time frame + opponent state + I + triple action chain
+    - Connector preference: and, and then, so I
+    - Person configuration: you/your (victim) + I (producer)
     """
-    # 文本归一化
+    # Text normalization
     s_lower = normalize_text(text)
     score = 0.0
-    
+
     # ========================================================================
-    # 硬门槛1：击溃语义必须出现（victim state）
+    # Hard gate 1: victim-state semantics must appear
     # ========================================================================
     has_victim_state = False
-    
+
     # ========================================================================
-    # 方法1：关键词库识别（原有方法）
+    # Method 1: keyword-based detection (original method)
     # ========================================================================
-    # 检查击溃语义关键词（支持多词短语）
+    # Check victim-state keywords (supports multi-word phrases)
     for kw in VICTIM_STATE_KEYWORDS:
         if ' ' in kw:
-            # 多词短语，使用正则匹配
+            # Multi-word phrase: use regex match
             if re.search(r'\b' + re.escape(kw) + r'\b', s_lower):
                 has_victim_state = True
                 break
         else:
-            # 单词，直接查找
+            # Single word: direct lookup
             if kw in s_lower:
                 has_victim_state = True
                 break
-    
-    # 检查击溃语义模式
+
+    # Check victim-state patterns
     if not has_victim_state:
         for pattern in VICTIM_STATE_PATTERNS:
-            # 跳过排除模式（用于反向检查）
+            # Skip exclusion patterns (used for negative checks)
             if r'was\s+(different|off|strange)' in pattern:
                 continue
             if re.search(pattern, s_lower):
                 has_victim_state = True
                 break
-    
+
     # ========================================================================
-    # 方法2：词性识别（新增方法，与方法1并列）
+    # Method 2: POS-based detection (new method, parallel to Method 1)
     # ========================================================================
     if not has_victim_state and NLTK_AVAILABLE:
         has_victim_state = detect_victim_state_by_pos(text)
-    
-    # 如果还没有找到击溃语义，检查标题中是否包含击溃语义词汇
-    # 这对于简洁句式（省略主语I）特别重要，标题本身可能包含击溃语义
+
+    # If victim-state semantics still not found, check whether the title contains victim-state vocabulary.
+    # This is especially important for concise forms (omitting subject "I"); the title itself may carry victim-state semantics.
     if not has_victim_state:
-        # 提取标题文本
+        # Extract the title text
         title_text = ""
         for pattern in FULL_COURT_TITLE_PATTERNS:
             match = re.search(pattern, s_lower)
             if match:
-                # 尝试从匹配的group中提取标题（如果pattern有捕获组）
+                # Try to extract the title from matched groups (if the pattern has capture groups)
                 if len(match.groups()) >= 3:
-                    # 第三个group通常是标题
+                    # The third group is typically the title
                     title_text = match.group(3).strip()
                 elif len(match.groups()) >= 1:
-                    # 如果只有一个group，可能是标题
+                    # If there's only one group, it may be the title
                     title_text = match.group(1).strip()
-                
-                # 如果从group中提取失败，从match.end()开始提取
+
+                # If group-based extraction fails, extract starting from match.end()
                 if not title_text or len(title_text) < 2:
                     title_start = match.end()
-                    # 找到标题结束位置（下一个动词或连接词）
+                    # Find the title end (next verb or connector)
                     title_end_match = re.search(r'\s+(and|then|so|dropped|released|opened|published|aired|premiered|streamed|uploaded|$)', s_lower[title_start:])
                     if title_end_match:
                         title_text = s_lower[title_start:title_start + title_end_match.start()].strip()
                     else:
-                        # 如果没有找到结束标记，提取到句子结尾或最多50字符
+                        # If no end marker is found, take to end of sentence or up to 50 characters
                         remaining_text = s_lower[title_start:]
-                        # 找到下一个主要动词作为边界
+                        # Use the next major verb as boundary
                         next_verb_match = re.search(r'\s+(dropped|released|opened|published|aired|premiered|streamed|uploaded)', remaining_text)
                         if next_verb_match:
                             title_text = remaining_text[:next_verb_match.start()].strip()
                         else:
-                            title_text = remaining_text[:50].strip()  # 最多50字符
+                            title_text = remaining_text[:50].strip()  # up to 50 characters
                 break
-        
-        # 检查标题中是否包含击溃语义关键词
+
+        # Check whether the title contains victim-state vocabulary
         if title_text:
-            # 检查标题中的击溃语义关键词（包括完整短语和单词）
+            # Check victim-state keywords within the title (including full phrases and single words)
             title_victim_keywords = {
                 'disappearance', 'disappeared', 'vanished', 'erased', 'folded',
                 'logout', 'heist', 'fold', 'autopsy', 'missing', 'exact frame',
@@ -383,20 +383,20 @@ def detect_full_court_shot(text: str) -> float:
                 'severe confidence', 'return to sender', 'abort confidence',
                 'fold on beat'
             }
-            # 先检查完整短语（多词）
+            # First check full multi-word phrases
             for kw in title_victim_keywords:
                 if ' ' in kw:
-                    # 多词短语，使用正则匹配
+                    # Multi-word phrase: use regex match
                     if re.search(r'\b' + re.escape(kw) + r'\b', title_text):
                         has_victim_state = True
                         break
                 else:
-                    # 单词，直接查找
+                    # Single word: direct lookup
                     if kw in title_text:
                         has_victim_state = True
                         break
-    
-    # 排除弱表达（如"energy was different"）- 这些不算击溃语义
+
+    # Exclude weak expressions (e.g. "energy was different") - these don't count as victim-state semantics
     weak_expressions = [
         r'\b(energy|vibe|momentum)\s+was\s+(different|off|strange)',
         r'\b(moment|performance)\s+(was|did)\s+(loud|a\s+thing)',
@@ -421,99 +421,99 @@ def detect_full_court_shot(text: str) -> float:
             has_victim_state = False
             break
     
-    # 硬门槛：必须有击溃语义才能继续（移除流程兜底逻辑，防止误报）
-    # 只有真正有击溃语义的句子才能通过，不能仅凭流程就判定
+    # Hard gate: must have victim-state semantics to continue (removed pipeline-only fallback to avoid false positives)
+    # Only sentences with genuine victim-state semantics pass; pipeline alone is insufficient
     if not has_victim_state:
         return 0.0
-    
+
     # ========================================================================
-    # 硬门槛2：流程检测（升级为硬规则兜底）
+    # Hard gate 2: pipeline detection (promoted to a hard-rule fallback)
     # ========================================================================
-    # 检测创建步骤（包括直接捕获信号）
+    # Detect the creation step (including direct-capture signals)
     has_creation = False
     for pattern in FULL_COURT_CREATION_PATTERNS:
         if re.search(pattern, s_lower):
             has_creation = True
             break
-    
-    # 检测直接捕获信号（screen recorded等，不要求后面跟footage类名词）
+
+    # Detect direct-capture signals (e.g. screen recorded; no following footage-type noun required)
     if not has_creation:
         for pattern in FULL_COURT_DIRECT_CAPTURE_PATTERNS:
             if re.search(pattern, s_lower):
                 has_creation = True
                 break
-    
-    # 检测命名步骤（标题是关键亮点）
+
+    # Detect the naming step (the title is the key highlight)
     has_naming = False
     for pattern in FULL_COURT_TITLE_PATTERNS:
         if re.search(pattern, s_lower):
             has_naming = True
             break
-    
-    # 检测发布步骤
+
+    # Detect the release step
     has_release = False
     for pattern in FULL_COURT_RELEASE_PATTERNS:
         if re.search(pattern, s_lower):
             has_release = True
             break
-    
-    # 流程硬规则：如果三步流程齐全，给高分（但必须已有击溃语义）
+
+    # Pipeline hard rule: if all three steps are present, give a high score (victim-state must already be present)
     if has_creation and has_naming and has_release:
-        # 完整三步流程 + 击溃语义，直接给高分
-        score = 0.85  # 硬规则兜底，确保流程齐全且有击溃语义的句子不被漏检
+        # Full three-step pipeline + victim-state, directly assign high score
+        score = 0.85  # Hard-rule fallback to ensure sentences with full pipeline and victim-state are not missed
     elif has_creation and has_naming:
-        # 两步流程（包含命名），基础分中等
+        # Two-step pipeline (including naming), moderate base score
         score = 0.4
     else:
-        # 没有完整流程或缺少命名，返回低分
+        # No complete pipeline or missing naming, return low score
         if not (has_creation and has_naming):
             return 0.0
     
     # ========================================================================
-    # 关键词加权评分（稀有词权重高，泛词权重低）
+    # Weighted keyword scoring (rare words weighted high, generic words low)
     # ========================================================================
-    # 稀有强词（高权重）
+    # Rare strong words (high weight)
     strong_count = sum(1 for kw in FULL_COURT_STRONG_KEYWORDS if kw in s_lower)
-    score += min(strong_count * 0.12, 0.25)  # 每个0.12分，上限0.25
-    
-    # 中等强度词（中权重）
+    score += min(strong_count * 0.12, 0.25)  # 0.12 per match, capped at 0.25
+
+    # Medium-strength words (medium weight)
     medium_count = sum(1 for kw in FULL_COURT_MEDIUM_KEYWORDS if kw in s_lower)
-    score += min(medium_count * 0.05, 0.15)  # 每个0.05分，上限0.15
-    
-    # 泛词（低权重，可能扣分）
+    score += min(medium_count * 0.05, 0.15)  # 0.05 per match, capped at 0.15
+
+    # Generic words (low weight, potentially penalized)
     weak_count = sum(1 for kw in FULL_COURT_WEAK_KEYWORDS if kw in s_lower)
-    if weak_count > 3:  # 泛词太多，可能是普通叙述
-        score -= min((weak_count - 3) * 0.03, 0.1)  # 扣分
-    
-    # 弱对象惩罚（timeline/highlights/chapter等，防止误报）
+    if weak_count > 3:  # Too many generic words: likely ordinary narration
+        score -= min((weak_count - 3) * 0.03, 0.1)  # Apply penalty
+
+    # Weak-object penalty (timeline/highlights/chapter, etc., to avoid false positives)
     weak_objects = {'timeline', 'highlights', 'chapter', 'story', 'part', 'segment'}
     weak_object_count = sum(1 for obj in weak_objects if obj in s_lower)
     if weak_object_count > 0:
-        # 如果只有弱对象，没有强媒体/强展览对象，降低上限
+        # If only weak objects with no strong media/exhibit objects, lower the cap
         strong_media_objects = {'documentary', 'investigation', 'report', 'exhibit', 'exhibition', 'museum', 'film', 'video', 'case file'}
         has_strong_object = any(obj in s_lower for obj in strong_media_objects)
         if not has_strong_object:
-            score = min(score, 0.5)  # 弱对象且无强对象，上限0.5
+            score = min(score, 0.5)  # Weak object without strong object: cap at 0.5
     
     # ========================================================================
-    # 反向惩罚：模糊词检测（特别是标题中的）
+    # Negative penalty: vagueness-word detection (especially inside titles)
     # ========================================================================
-    # 检查标题中的模糊词（最严重，直接扣分或拒绝）
+    # Check vagueness words inside the title (most severe; penalize heavily or reject)
     title_vagueness = False
     title_vagueness_words = []
     for pattern in FULL_COURT_TITLE_PATTERNS:
         match = re.search(pattern, s_lower)
         if match:
-            # 提取标题文本（从titled/named/called到and/then/so/结尾）
+            # Extract the title text (from titled/named/called up to and/then/so/end)
             title_start = match.end()
-            # 找到标题结束位置（and/then/so/结尾）
+            # Find title end position (and/then/so/end)
             title_end_match = re.search(r'\s+(and|then|so|dropped|released|opened|published|aired|$)', s_lower[title_start:])
             if title_end_match:
                 title_text = s_lower[title_start:title_start + title_end_match.start()]
             else:
-                title_text = s_lower[title_start:title_start + 50]  # 最多50字符
-            
-            # 检查标题中是否有模糊词
+                title_text = s_lower[title_start:title_start + 50]  # up to 50 characters
+
+            # Check whether the title contains vagueness words
             for word in VAGUENESS_PENALTY_WORDS:
                 if word in title_text:
                     title_vagueness = True
@@ -521,20 +521,20 @@ def detect_full_court_shot(text: str) -> float:
                     break
             if title_vagueness:
                 break
-    
-    # 标题中有模糊词，直接大幅扣分或拒绝
+
+    # Vagueness word in the title: apply a large penalty or reject outright
     if title_vagueness:
-        score -= 0.6  # 标题中有模糊词，大幅扣分（从0.4提高到0.6）
-        # 如果分数被扣到很低，直接拒绝
+        score -= 0.6  # Large penalty for vagueness word in title (raised from 0.4 to 0.6)
+        # If score drops too low, reject outright
         if score < 0.3:
             return 0.0
-    
-    # 检查文本其他位置的模糊词
+
+    # Check vagueness words elsewhere in the text
     vagueness_count = sum(1 for word in VAGUENESS_PENALTY_WORDS if word in s_lower)
     if vagueness_count > 0 and not title_vagueness:
-        score -= min(vagueness_count * 0.2, 0.4)  # 其他位置的模糊词（从0.15提高到0.2）
-    
-    # 检查弱表达模式（即使通过了击溃语义检查，也要扣分）
+        score -= min(vagueness_count * 0.2, 0.4)  # Vagueness words outside the title (raised from 0.15 to 0.2)
+
+    # Check weak-expression patterns (apply penalty even if victim-state check passed)
     weak_expression_penalties = [
         (r'\b(some\s+kind\s+of|somehow|did\s+a\s+thing|felt\s+like|was\s+off|was\s+different)', 0.3),
         (r'\b(made\s+content\s+about|noticed\s+it|saw\s+it)', 0.2),
@@ -546,25 +546,25 @@ def detect_full_court_shot(text: str) -> float:
             break
     
     # ========================================================================
-    # 语法特征检测（最强信号）- 基于语言学分析
+    # Grammatical feature detection (strongest signals) - based on linguistic analysis
     # ========================================================================
-    
-    # 1. 检测"三连动词句式"：I + VERB1 + OBJ1 + VERB2 + OBJ2 + VERB3 + OBJ3
-    # 这是Full-Court Shot最典型的语法特征
-    # 也支持省略主语I的简洁句式：VERB1 + OBJ1 + VERB2 + OBJ2 + VERB3 + OBJ3
+
+    # 1. Detect the "triple-verb construction": I + VERB1 + OBJ1 + VERB2 + OBJ2 + VERB3 + OBJ3
+    # This is the most characteristic grammatical feature of Full-Court Shot
+    # Also supports subject-omitted concise forms: VERB1 + OBJ1 + VERB2 + OBJ2 + VERB3 + OBJ3
     verb1_pattern = r'\b(pulled|grabbed|captured|caught|snapped|clipped|recorded|ran|got|printed|wrote|filed|issued|opened|logged|tracked|made|created|pushed|posted|built|constructed|assembled|erected)\s+'
     verb2_pattern = r'\b(titled|named|called|labeled|tagged)\s+(it|this|that|the)\s+'
     verb3_pattern = r'\b(dropped|released|unveiled|debuted|aired|broadcast|streamed|premiered|uploaded|published|opened|launched|presented)\s+'
     
-    # 检测三连动词模式（允许中间有连接词和少量其他词）
-    # 支持有主语I和省略主语I两种情况
+    # Detect the triple-verb pattern (allowing connectors and a few other words in between)
+    # Supports both with and without subject "I"
     triple_verb_pattern_with_i = r'\bi\s+' + verb1_pattern + r'[^.]*?' + verb2_pattern + r'[^.]*?' + verb3_pattern
-    triple_verb_pattern_no_i = verb1_pattern + r'[^.]*?' + verb2_pattern + r'[^.]*?' + verb3_pattern  # 省略主语I
-    
+    triple_verb_pattern_no_i = verb1_pattern + r'[^.]*?' + verb2_pattern + r'[^.]*?' + verb3_pattern  # Subject "I" omitted
+
     if re.search(triple_verb_pattern_with_i, s_lower, re.IGNORECASE) or re.search(triple_verb_pattern_no_i, s_lower, re.IGNORECASE):
-        score += 0.3  # 三连动词句式是强信号
-    
-    # 2. 检测时间框架开头（让句子更像新闻播报）
+        score += 0.3  # Triple-verb construction is a strong signal
+
+    # 2. Detect time-frame openings (makes sentence read more like news broadcast)
     time_frame_patterns = [
         r'\b(by\s+the\s+end\s+of|the\s+moment|as\s+soon\s+as|after\s+that\s+round|mid\s+battle|soon\s+as|the\s+second|when\s+the|that\s+round|one\s+beat\s+switch\s+later|by\s+round\s+(two|three|four|five|\d+)|once)',
     ]
@@ -572,34 +572,34 @@ def detect_full_court_shot(text: str) -> float:
     if has_time_frame:
         score += 0.1
     
-    # 3. 检测两段结构：时间框架 + 对手状态 + I + 三连动作
-    # 检测"your X was Y"或"your X vanished/disappeared"后跟"I + 动作"
+    # 3. Detect two-part structure: time frame + opponent state + I + triple action chain
+    # Detect "your X was Y" or "your X vanished/disappeared" followed by "I + action"
     two_part_structure = re.search(
         r'(?:by\s+the\s+end|the\s+moment|after|mid|when|that\s+round|soon\s+as).*?your\s+\w+\s+(?:was|got|left|went|vanished|disappeared|erased|faded|gone|got\s+(?:stolen|deleted|rerouted|repossessed|packed|shipped))[^.]*?\bi\s+',
         s_lower,
         re.IGNORECASE
     )
     if two_part_structure:
-        score += 0.15  # 两段结构是典型特征
-    
-    # 4. 检测连接词偏好（and, and then, so I）
+        score += 0.15  # Two-part structure is a characteristic feature
+
+    # 4. Detect connector preferences (and, and then, so I)
     connector_patterns = [
-        r'\band\s+and\s+and',  # 连续and
+        r'\band\s+and\s+and',  # Repeated and
         r'\band\s+then',  # and then
         r'\bso\s+i\s+',  # so I
         r'\band\s+i\s+',  # and I
     ]
     connector_count = sum(1 for p in connector_patterns if re.search(p, s_lower))
     if connector_count > 0:
-        score += min(connector_count * 0.05, 0.1)  # 连接词强化流程感
-    
-    # 5. 检测人称配置：you/your (受害者) + I (制作人)
+        score += min(connector_count * 0.05, 0.1)  # Connectors reinforce pipeline feel
+
+    # 5. Detect person configuration: you/your (victim) + I (producer)
     has_you = bool(re.search(r'\b(you|your)\s+', s_lower))
     has_i = bool(re.search(r'\bi\s+', s_lower))
     if has_you and has_i:
-        score += 0.1  # 人称配置制造压迫感
-    
-    # 6. 检测标题语法特征（名词短语或从句缩写式标题）
+        score += 0.1  # Person configuration creates pressure
+
+    # 6. Detect title grammar features (noun-phrase or clause-abbreviated titles)
     title_grammar_patterns = [
         r'where\s+(his|the|your)\s+\w+\s+went',  # Where His X Went
         r'the\s+day\s+(he|you|they)\s+\w+',  # The Day He Y
@@ -613,25 +613,25 @@ def detect_full_court_shot(text: str) -> float:
     ]
     title_grammar_count = sum(1 for p in title_grammar_patterns if re.search(p, s_lower))
     if title_grammar_count > 0:
-        score += min(title_grammar_count * 0.08, 0.15)  # 标题语法特征
-    
+        score += min(title_grammar_count * 0.08, 0.15)  # Title grammar features
+
     # ========================================================================
-    # 额外加分项
+    # Extra bonus items
     # ========================================================================
-    # 检测"消失+媒体"的强组合
+    # Detect the strong "disappearance + media" combination
     if re.search(r'\b(erased|vanished|disappeared|faded|gone)\s+(on|from|in)\s+(camera|film|tape|video|recording)', s_lower):
         score += 0.1
-    
-    # 检测意外的转折
+
+    # Detect unexpected turns
     if re.search(r'\b(but|yet|however|though|although)\s+', s_lower):
         score += 0.05
-    
-    # 确保分数在合理范围内
+
+    # Clamp score to a reasonable range
     return max(0.0, min(score, 1.0))
 
 
 # ============================================================================
-# Slam Dunk (+4.25 Points) - 震撼性的重击
+# Slam Dunk (+4.25 Points) - concussive knockout bar
 # ============================================================================
 
 SLAM_DUNK_KEYWORDS = {
@@ -650,29 +650,29 @@ SLAM_DUNK_PATTERNS = [
 
 def detect_slam_dunk(text: str) -> float:
     """
-    检测 Slam Dunk 技巧
-    震撼性的重击，瞬间爆炸反应
+    Detect the Slam Dunk technique.
+    Concussive knockout bar, instant explosive reaction.
     """
     s_lower = text.lower()
     score = 0.0
-    
-    # 关键词匹配
+
+    # Keyword match
     keyword_count = sum(1 for kw in SLAM_DUNK_KEYWORDS if kw in s_lower)
     score += min(keyword_count * 0.12, 0.4)
-    
-    # 模式匹配
+
+    # Pattern match
     pattern_matches = sum(1 for pattern in SLAM_DUNK_PATTERNS if re.search(pattern, s_lower))
     score += min(pattern_matches * 0.25, 0.5)
-    
-    # 检测强烈的对比结构
+
+    # Detect strong contrast structures
     if re.search(r'\b(only|just|merely)\s+\w+\s+.*\s+(but|yet|however)', s_lower):
         score += 0.2
-    
+
     return min(score, 1.0)
 
 
 # ============================================================================
-# Half-Court Shot (+3.75 Points) - 创意风险命中
+# Half-Court Shot (+3.75 Points) - creative risk that lands
 # ============================================================================
 
 HALF_COURT_KEYWORDS = {
@@ -692,29 +692,29 @@ HALF_COURT_PATTERNS = [
 
 def detect_half_court_shot(text: str) -> float:
     """
-    检测 Half-Court Shot 技巧
-    创意风险命中，完美落地
+    Detect the Half-Court Shot technique.
+    Creative risk that lands with a perfect finish.
     """
     s_lower = text.lower()
     score = 0.0
-    
-    # 关键词匹配
+
+    # Keyword match
     keyword_count = sum(1 for kw in HALF_COURT_KEYWORDS if kw in s_lower)
     score += min(keyword_count * 0.15, 0.4)
-    
-    # 模式匹配
+
+    # Pattern match
     pattern_matches = sum(1 for pattern in HALF_COURT_PATTERNS if re.search(pattern, s_lower))
     score += min(pattern_matches * 0.2, 0.4)
-    
-    # 检测情感转换（trauma -> triumph）
+
+    # Detect emotional transformation (trauma -> triumph)
     if re.search(r'\b(trauma|pain|hurt|suffering)\s+.*\s+(into|to|became)\s+(triumph|victory|success|win)', s_lower):
         score += 0.2
-    
+
     return min(score, 1.0)
 
 
 # ============================================================================
-# Alley-Oop/Assist (+3.5 Points) - 多人配合
+# Alley-Oop/Assist (+3.5 Points) - multi-person coordination
 # ============================================================================
 
 ALLEY_OOP_KEYWORDS = {
@@ -732,51 +732,51 @@ ALLEY_OOP_PATTERNS = [
 
 def detect_alley_oop(text: str) -> float:
     """
-    检测 Alley-Oop/Assist 技巧
-    多人配合，团队协作
+    Detect the Alley-Oop/Assist technique.
+    Multi-person coordination, team collaboration.
     """
     s_lower = text.lower()
     score = 0.0
-    
-    # 关键词匹配
+
+    # Keyword match
     keyword_count = sum(1 for kw in ALLEY_OOP_KEYWORDS if kw in s_lower)
     score += min(keyword_count * 0.12, 0.3)
-    
-    # 模式匹配
+
+    # Pattern match
     pattern_matches = sum(1 for pattern in ALLEY_OOP_PATTERNS if re.search(pattern, s_lower))
     score += min(pattern_matches * 0.3, 0.5)
-    
-    # 检测引号内的对话（多人配合的标记）
+
+    # Detect quoted dialogue (marker of multi-person coordination)
     quoted_dialogue = len(re.findall(r'[\'"].*?[\'"]', text))
     if quoted_dialogue >= 2:
         score += 0.2
-    
-    # 检测指令性语言
+
+    # Detect imperative language
     if re.search(r'\b(line|set|get|put)\s+(him|them|it|you)\s+up', s_lower):
         score += 0.2
-    
+
     return min(score, 1.0)
 
 
 # ============================================================================
-# 主函数：检测所有技巧
+# Main function: detect all techniques
 # ============================================================================
 
 def detect_rap_techniques(texts):
     """
-    检测所有说唱技巧特征
-    
-    返回 (n, 4) 稀疏矩阵，每列对应一个技巧的强度分数 (0-1):
-    - 第0列: Full-Court Shot
-    - 第1列: Slam Dunk
-    - 第2列: Half-Court Shot
-    - 第3列: Alley-Oop/Assist
-    
-    参数:
-        texts: 文本列表（字符串列表）
-    
-    返回:
-        scipy.sparse.csr_matrix: 稀疏矩阵，形状为 (len(texts), 4)
+    Detect all rap technique features.
+
+    Returns an (n, 4) sparse matrix where each column is the intensity score (0-1) for a technique:
+    - Column 0: Full-Court Shot
+    - Column 1: Slam Dunk
+    - Column 2: Half-Court Shot
+    - Column 3: Alley-Oop/Assist
+
+    Args:
+        texts: list of text strings
+
+    Returns:
+        scipy.sparse.csr_matrix: sparse matrix of shape (len(texts), 4)
     """
     # Handle single string input (not just lists)
     if isinstance(texts, str):
@@ -786,7 +786,7 @@ def detect_rap_techniques(texts):
     for text in texts:
         s = text if isinstance(text, str) else ""
         
-        # 调用各个技巧检测函数
+        # Call each technique's detector function
         full_court_score = detect_full_court_shot(s)
         slam_dunk_score = detect_slam_dunk(s)
         half_court_score = detect_half_court_shot(s)
@@ -799,33 +799,33 @@ def detect_rap_techniques(texts):
 
 
 # ============================================================================
-# 技巧信息（用于显示和分析）
+# Technique info (for display and analysis)
 # ============================================================================
 
 TECHNIQUE_INFO = {
     "full_court_shot": {
         "name": "Full-Court Shot",
         "points": "+5.0 Points",
-        "description": "高风险高回报的bar，意外的重击"
+        "description": "High-risk, high-reward bar: an unexpected knockout"
     },
     "slam_dunk": {
         "name": "Slam Dunk",
         "points": "+4.25 Points",
-        "description": "震撼性的重击，瞬间爆炸反应"
+        "description": "Concussive knockout bar with instant explosive reaction"
     },
     "half_court_shot": {
         "name": "Half-Court Shot",
         "points": "+3.75 Points",
-        "description": "创意风险命中，完美落地"
+        "description": "Creative risk that lands with a perfect finish"
     },
     "alley_oop": {
         "name": "Alley-Oop/Assist",
         "points": "+3.5 Points",
-        "description": "多人配合，团队协作"
+        "description": "Multi-person coordination and team collaboration"
     }
 }
 
 def get_technique_info(technique_key: str) -> dict:
-    """获取技巧信息"""
+    """Get information for a given technique."""
     return TECHNIQUE_INFO.get(technique_key, {})
 

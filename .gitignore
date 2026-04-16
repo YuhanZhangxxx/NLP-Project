@@ -16,3 +16,6 @@ data/raw/
 data/processed/
 data/raw_txt/
 data/transcribed_lyrics/
+data/transcripts/
+.cursor/
+.claude/
