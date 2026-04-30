@@ -200,7 +200,7 @@ def main():
     except Exception as e:
         result = _error_envelope(f"unexpected error: {type(e).__name__}: {e}", match_id)
 
-    print(json.dumps(result, indent=2, ensure_ascii=False))
+    print(json.dumps(result, indent=2, ensure_ascii=True))
     sys.exit(0 if result["status"] == "ok" else 1)
 
 

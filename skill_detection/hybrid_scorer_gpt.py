@@ -1090,7 +1090,7 @@ def main():
     except LLMError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
-    print(json.dumps(result, indent=2, ensure_ascii=False))
+    print(json.dumps(result, indent=2, ensure_ascii=True))
 
 
 if __name__ == "__main__":
