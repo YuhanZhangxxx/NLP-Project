@@ -14,6 +14,8 @@ Usage:
 Environment:
     DATABASE_URL in .env (loaded automatically)
 """
+from __future__ import annotations
+
 import argparse
 import json
 import math
