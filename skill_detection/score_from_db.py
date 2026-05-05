@@ -90,17 +90,19 @@ def list_livestreams_with_transcripts():
 
 
 def fetch_transcripts(livestream_id: str) -> list[dict]:
-    """Fetch all transcript rows for a livestream, ordered by round + created."""
+    """Fetch one latest transcript per round/rapper for a livestream."""
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute("""
-            SELECT round, rapper, text, created
+            SELECT DISTINCT ON (round, rapper)
+                   round, rapper, text, created
             FROM transcripts
             WHERE livestream_id = %s
-            ORDER BY round, created;
+            ORDER BY round, rapper, created DESC;
         """, (livestream_id,))
         cols = [d[0] for d in cur.description]
-        return [dict(zip(cols, r)) for r in cur.fetchall()]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+    return sorted(rows, key=lambda r: (r["round"], r["created"]))
 
 
 def resolve_rapper_name(bruf_id: str) -> str:
@@ -175,18 +177,64 @@ def build_payload(livestream_id: str, rows: list[dict]) -> dict:
             raise ValueError(f"Round {rn} incomplete: missing {'A' if 'a' not in pair else 'B'}")
         rounds_list.append(pair)
 
-    return {
+    payload = {
         "match_id": livestream_id,
         "battler_a": resolve_rapper_name(rapper_a_id),
         "battler_b": resolve_rapper_name(rapper_b_id),
         "rounds": rounds_list,
     }
+    return payload, rapper_a_id, rapper_b_id
 
 
-def save_verdict(livestream_id: str, result: dict):
-    """Write match verdict back to the matches table."""
-    with get_connection(autocommit=True) as conn:
+def _update_account_record(cur, bruf_id: str, win: bool, round_score: int) -> None:
+    """Increment wins or losses and add bp for the account owning bruf_id."""
+    if not bruf_id:
+        return
+    if win:
+        cur.execute("""
+            UPDATE accounts
+            SET wins = COALESCE(wins, 0) + 1,
+                bp   = COALESCE(bp,   0) + %s
+            WHERE id::text = (SELECT owner FROM brufids WHERE id = %s)
+               OR username  = (SELECT owner FROM brufids WHERE id = %s);
+        """, (round_score, bruf_id, bruf_id))
+    else:
+        cur.execute("""
+            UPDATE accounts
+            SET losses = COALESCE(losses, 0) + 1,
+                bp     = COALESCE(bp,     0) + %s
+            WHERE id::text = (SELECT owner FROM brufids WHERE id = %s)
+               OR username  = (SELECT owner FROM brufids WHERE id = %s);
+        """, (round_score, bruf_id, bruf_id))
+    rows = cur.rowcount
+    print(f"  account update ({'win' if win else 'loss'}) bruf={bruf_id} bp+={round_score} rows={rows}", file=sys.stderr)
+
+
+def save_verdict(livestream_id: str, result: dict, rapper_a_id: str | None = None, rapper_b_id: str | None = None):
+    """Write match verdict back to the matches table and update account W/L/BP."""
+    with get_connection() as conn:
         cur = conn.cursor()
+        cur.execute("""
+            SELECT verdict
+            FROM matches
+            WHERE livestream_id = %s
+            FOR UPDATE;
+        """, (livestream_id,))
+        match_rows = cur.fetchall()
+        if len(match_rows) == 0:
+            conn.rollback()
+            print(f"  ERROR: no match row found for livestream_id={livestream_id}. "
+                  f"Create a match with this livestream_id first.", file=sys.stderr)
+            return
+        if len(match_rows) > 1:
+            conn.rollback()
+            print(f"  WARNING: {len(match_rows)} match rows found for livestream_id={livestream_id}; "
+                  f"expected 1. Skipping save to avoid duplicate account updates.", file=sys.stderr)
+            return
+        if match_rows[0][0]:
+            conn.rollback()
+            print("  Verdict already exists; skipping save and account record updates.", file=sys.stderr)
+            return
 
         # Compute wins from rounds data
         a_wins = 0.0
@@ -219,14 +267,15 @@ def save_verdict(livestream_id: str, result: dict):
 
         updated = cur.rowcount
 
+        # Update account W/L/BP
+        if updated == 1 and rapper_a_id and rapper_b_id:
+            a_won = a_wins >= b_wins
+            _update_account_record(cur, rapper_a_id, win=a_won,     round_score=score1 if a_won else score2)
+            _update_account_record(cur, rapper_b_id, win=not a_won, round_score=score2 if a_won else score1)
+        conn.commit()
+
     if updated == 1:
         print(f"  Verdict saved: score1={score1}, score2={score2}", file=sys.stderr)
-    elif updated == 0:
-        print(f"  ERROR: no match row found for livestream_id={livestream_id}. "
-              f"Create a match with this livestream_id first.", file=sys.stderr)
-    else:
-        print(f"  WARNING: {updated} match rows updated (expected 1). "
-              f"Multiple matches share livestream_id={livestream_id}.", file=sys.stderr)
 
 
 def main():
@@ -252,13 +301,13 @@ def main():
 
     # Step 2: Build payload
     try:
-        payload = build_payload(args.livestream_id, rows)
+        payload, rapper_a_id, rapper_b_id = build_payload(args.livestream_id, rows)
     except ValueError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
     payload["tie_threshold"] = args.tie_threshold
-    print(f"  Battler A: {payload['battler_a']}", file=sys.stderr)
-    print(f"  Battler B: {payload['battler_b']}", file=sys.stderr)
+    print(f"  Battler A: {payload['battler_a']} (bruf={rapper_a_id})", file=sys.stderr)
+    print(f"  Battler B: {payload['battler_b']} (bruf={rapper_b_id})", file=sys.stderr)
     print(f"  Rounds: {len(payload['rounds'])}", file=sys.stderr)
 
     # Step 3: Score
@@ -274,7 +323,7 @@ def main():
 
     # Step 5: Save (optional)
     if args.save and result.get("status") == "ok":
-        save_verdict(args.livestream_id, result)
+        save_verdict(args.livestream_id, result, rapper_a_id, rapper_b_id)
 
     sys.exit(0 if result.get("status") == "ok" else 1)
 
