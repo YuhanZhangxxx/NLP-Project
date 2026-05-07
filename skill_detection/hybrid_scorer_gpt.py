@@ -479,6 +479,7 @@ _CACHE: dict = _cache_load()
 
 
 def call_llm(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
+    model = DEFAULT_MODEL  # locked to gpt-4o-mini
     """Query OpenAI Chat Completions API. Returns {"message": {"content": "<text>"}}"""
     # Normalize unicode chars that cause ASCII codec errors on Windows
     _uni = str.maketrans({'\u2014': '--', '\u2026': '...', '\u2192': '->', '\u2260': '!='})
@@ -865,6 +866,7 @@ def hybrid_score(
     battler: str = None,
     opponent_bars: str = None,
 ) -> dict:
+    model = DEFAULT_MODEL  # locked to gpt-4o-mini
     text = _correct_slang(text)
     text = _auto_split_lines(text)
     text = _strip_adlib_lines(text)
@@ -1062,7 +1064,7 @@ def main():
     ap = argparse.ArgumentParser(description="Hybrid rule+LLM FCPBRL scorer")
     ap.add_argument("text", nargs="?", help="Lyrics text")
     ap.add_argument("--file", "-f", help="Path to lyrics file")
-    ap.add_argument("--model", "-m", default=DEFAULT_MODEL)
+    ap.add_argument("--model", "-m", default=DEFAULT_MODEL, help="(ignored, locked to gpt-4o-mini)")
     ap.add_argument("--round", "-r", type=int, default=None)
     ap.add_argument("--battler", "-b", default=None)
     ap.add_argument("--opponent-bars", help="Opponent's bars as inline text (for STL detection)")

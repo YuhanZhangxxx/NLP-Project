@@ -106,7 +106,7 @@ def score_match(payload: dict) -> dict:
     battler_a = payload.get("battler_a") or "A"
     battler_b = payload.get("battler_b") or "B"
     tie_threshold = float(payload.get("tie_threshold") or DEFAULT_TIE_THRESHOLD)
-    model = payload.get("model") or DEFAULT_MODEL
+    model = DEFAULT_MODEL  # locked to gpt-4o-mini
 
     round_results: list[dict] = []
     a_wins = 0.0
