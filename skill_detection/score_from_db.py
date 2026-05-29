@@ -210,8 +210,48 @@ def _update_account_record(cur, bruf_id: str, win: bool, round_score: int) -> No
     print(f"  account update ({'win' if win else 'loss'}) bruf={bruf_id} bp+={round_score} rows={rows}", file=sys.stderr)
 
 
+def _update_hprp(cur, bruf_id: str, delta: float) -> None:
+    """Add delta to accounts.hprp for the account owning bruf_id."""
+    if not bruf_id:
+        return
+    cur.execute("""
+        UPDATE accounts
+        SET hprp = ROUND(COALESCE(hprp, 90.0) + %s, 2)
+        WHERE id::text = (SELECT owner FROM brufids WHERE id = %s)
+           OR username  = (SELECT owner FROM brufids WHERE id = %s);
+    """, (delta, bruf_id, bruf_id))
+    print(f"  hprp update bruf={bruf_id} delta={delta:+.2f} rows={cur.rowcount}", file=sys.stderr)
+
+
+def _compute_hprp_deltas(rounds: list[dict]) -> tuple[float, float]:
+    """
+    Compute cumulative HPRP delta for rapper A and B from per-round scores.
+
+    For each round:
+      - diff = abs(score_a - score_b)
+      - winner gets +diff, loser gets -diff
+      - ties: no change
+    Returns (delta_a, delta_b).
+    """
+    delta_a = 0.0
+    delta_b = 0.0
+    for r in rounds:
+        score_a = float(r.get("score_a", 0.0))
+        score_b = float(r.get("score_b", 0.0))
+        winner  = r.get("winner", "tie")
+        diff    = round(abs(score_a - score_b), 2)
+        if winner == "A":
+            delta_a += diff
+            delta_b -= diff
+        elif winner == "B":
+            delta_a -= diff
+            delta_b += diff
+        # tie: no HPRP change
+    return round(delta_a, 2), round(delta_b, 2)
+
+
 def save_verdict(livestream_id: str, result: dict, rapper_a_id: str | None = None, rapper_b_id: str | None = None):
-    """Write match verdict back to the matches table and update account W/L/BP."""
+    """Write match verdict back to the matches table and update account W/L/BP/HPRP."""
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute("""
@@ -236,10 +276,12 @@ def save_verdict(livestream_id: str, result: dict, rapper_a_id: str | None = Non
             print("  Verdict already exists; skipping save and account record updates.", file=sys.stderr)
             return
 
-        # Compute wins from rounds data
+        rounds = result.get("rounds", [])
+
+        # Compute round win counts (used for score1/score2 and W/L/BP)
         a_wins = 0.0
         b_wins = 0.0
-        for r in result.get("rounds", []):
+        for r in rounds:
             w = r.get("winner", "")
             if w == "A":
                 a_wins += 1
@@ -249,9 +291,7 @@ def save_verdict(livestream_id: str, result: dict, rapper_a_id: str | None = Non
                 a_wins += 0.5
                 b_wins += 0.5
 
-        # score1/score2 in matches table are INTEGERs — store round wins.
-        # Winner gets ceil, loser gets floor so total = number of rounds.
-        # e.g. 2.5-0.5 → 3-0 (total=3 rounds, winner clear).
+        # score1/score2: round win counts (existing behaviour)
         if a_wins >= b_wins:
             score1 = int(math.ceil(a_wins))
             score2 = int(math.floor(b_wins))
@@ -259,23 +299,39 @@ def save_verdict(livestream_id: str, result: dict, rapper_a_id: str | None = Non
             score1 = int(math.floor(a_wins))
             score2 = int(math.ceil(b_wins))
 
+        # ai_score1/ai_score2: sum of per-round AI scores
+        ai_score1 = round(sum(float(r.get("score_a", 0.0)) for r in rounds), 2)
+        ai_score2 = round(sum(float(r.get("score_b", 0.0)) for r in rounds), 2)
+
         cur.execute("""
             UPDATE matches
-            SET score1 = %s, score2 = %s, verdict = %s
+            SET score1    = %s,
+                score2    = %s,
+                ai_score1 = %s,
+                ai_score2 = %s,
+                verdict   = %s
             WHERE livestream_id = %s;
-        """, (score1, score2, json.dumps(result, ensure_ascii=True), livestream_id))
+        """, (score1, score2, ai_score1, ai_score2,
+              json.dumps(result, ensure_ascii=True), livestream_id))
 
         updated = cur.rowcount
 
-        # Update account W/L/BP
         if updated == 1 and rapper_a_id and rapper_b_id:
+            # W/L/BP (existing)
             a_won = a_wins >= b_wins
             _update_account_record(cur, rapper_a_id, win=a_won,     round_score=score1 if a_won else score2)
             _update_account_record(cur, rapper_b_id, win=not a_won, round_score=score2 if a_won else score1)
+
+            # HPRP (new)
+            delta_a, delta_b = _compute_hprp_deltas(rounds)
+            _update_hprp(cur, rapper_a_id, delta_a)
+            _update_hprp(cur, rapper_b_id, delta_b)
+            print(f"  HPRP deltas: A({rapper_a_id})={delta_a:+.2f}  B({rapper_b_id})={delta_b:+.2f}", file=sys.stderr)
+
         conn.commit()
 
     if updated == 1:
-        print(f"  Verdict saved: score1={score1}, score2={score2}", file=sys.stderr)
+        print(f"  Verdict saved: score1={score1} score2={score2} ai_score1={ai_score1} ai_score2={ai_score2}", file=sys.stderr)
 
 
 def main():
