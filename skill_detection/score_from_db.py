@@ -250,7 +250,27 @@ def _compute_hprp_deltas(rounds: list[dict]) -> tuple[float, float]:
     return round(delta_a, 2), round(delta_b, 2)
 
 
-def save_verdict(livestream_id: str, result: dict, rapper_a_id: str | None = None, rapper_b_id: str | None = None):
+def emit_progress(livestream_id: str, phase: str, percent: int, message: str, **extra) -> None:
+    """Emit a machine-readable progress marker for the Node backend."""
+    event = {
+        "livestream_id": livestream_id,
+        "phase": phase,
+        "percent": max(0, min(100, int(percent))),
+        "message": message,
+        **extra,
+    }
+    print("[progress] " + json.dumps(event, ensure_ascii=True), file=sys.stderr, flush=True)
+
+
+def save_verdict(
+    livestream_id: str,
+    result: dict,
+    rapper_a_id: str | None = None,
+    rapper_b_id: str | None = None,
+    *,
+    force: bool = False,
+    update_accounts: bool = True,
+):
     """Write match verdict back to the matches table and update account W/L/BP/HPRP."""
     with get_connection() as conn:
         cur = conn.cursor()
@@ -271,10 +291,13 @@ def save_verdict(livestream_id: str, result: dict, rapper_a_id: str | None = Non
             print(f"  WARNING: {len(match_rows)} match rows found for livestream_id={livestream_id}; "
                   f"expected 1. Skipping save to avoid duplicate account updates.", file=sys.stderr)
             return
-        if match_rows[0][0]:
+        existing_verdict = match_rows[0][0]
+        if existing_verdict and not force:
             conn.rollback()
             print("  Verdict already exists; skipping save and account record updates.", file=sys.stderr)
             return
+        if existing_verdict and force:
+            print("  Existing verdict found; overwriting match scores/verdict.", file=sys.stderr)
 
         rounds = result.get("rounds", [])
 
@@ -316,7 +339,8 @@ def save_verdict(livestream_id: str, result: dict, rapper_a_id: str | None = Non
 
         updated = cur.rowcount
 
-        if updated == 1 and rapper_a_id and rapper_b_id:
+        should_update_accounts = updated == 1 and rapper_a_id and rapper_b_id and update_accounts and not existing_verdict
+        if should_update_accounts:
             # W/L/BP (existing)
             a_won = a_wins >= b_wins
             _update_account_record(cur, rapper_a_id, win=a_won,     round_score=score1 if a_won else score2)
@@ -327,6 +351,10 @@ def save_verdict(livestream_id: str, result: dict, rapper_a_id: str | None = Non
             _update_hprp(cur, rapper_a_id, delta_a)
             _update_hprp(cur, rapper_b_id, delta_b)
             print(f"  HPRP deltas: A({rapper_a_id})={delta_a:+.2f}  B({rapper_b_id})={delta_b:+.2f}", file=sys.stderr)
+        elif updated == 1 and existing_verdict:
+            print("  Account record updates skipped for forced rescore to avoid double-counting.", file=sys.stderr)
+        elif updated == 1 and not update_accounts:
+            print("  Account record updates skipped by --skip-account-updates.", file=sys.stderr)
 
         conn.commit()
 
@@ -340,6 +368,9 @@ def main():
     ap.add_argument("--save", action="store_true", help="Save verdict back to matches table")
     ap.add_argument("--list", action="store_true", help="List livestreams with transcripts")
     ap.add_argument("--tie-threshold", type=float, default=0.75)
+    ap.add_argument("--force", action="store_true", help="Overwrite an existing match verdict")
+    ap.add_argument("--skip-account-updates", action="store_true",
+                    help="Save match scores/verdict without updating account W/L/BP/HPRP")
     args = ap.parse_args()
 
     if args.list:
@@ -351,14 +382,17 @@ def main():
         sys.exit(1)
 
     # Step 1: Fetch transcripts
+    emit_progress(args.livestream_id, "fetching", 5, "Fetching transcripts")
     print(f"Fetching transcripts for {args.livestream_id}...", file=sys.stderr)
     rows = fetch_transcripts(args.livestream_id)
     print(f"  Found {len(rows)} rows", file=sys.stderr)
 
     # Step 2: Build payload
+    emit_progress(args.livestream_id, "building", 10, "Preparing match payload", rows=len(rows))
     try:
         payload, rapper_a_id, rapper_b_id = build_payload(args.livestream_id, rows)
     except ValueError as e:
+        emit_progress(args.livestream_id, "failed", 100, str(e))
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
     payload["tie_threshold"] = args.tie_threshold
@@ -367,10 +401,15 @@ def main():
     print(f"  Rounds: {len(payload['rounds'])}", file=sys.stderr)
 
     # Step 3: Score
+    emit_progress(args.livestream_id, "scoring", 15, "Starting AI judge", rounds=len(payload["rounds"]))
     print("Scoring...", file=sys.stderr)
     try:
-        result = score_match(payload)
+        result = score_match(
+            payload,
+            progress_callback=lambda event: emit_progress(args.livestream_id, **event),
+        )
     except Exception as e:
+        emit_progress(args.livestream_id, "failed", 100, f"Scorer failed: {e}")
         print(f"ERROR: scorer failed: {e}", file=sys.stderr)
         sys.exit(1)
 
@@ -379,8 +418,17 @@ def main():
 
     # Step 5: Save (optional)
     if args.save and result.get("status") == "ok":
-        save_verdict(args.livestream_id, result, rapper_a_id, rapper_b_id)
+        emit_progress(args.livestream_id, "saving", 92, "Saving verdict")
+        save_verdict(
+            args.livestream_id,
+            result,
+            rapper_a_id,
+            rapper_b_id,
+            force=args.force,
+            update_accounts=not args.skip_account_updates,
+        )
 
+    emit_progress(args.livestream_id, "completed", 100, "AI judge complete")
     sys.exit(0 if result.get("status") == "ok" else 1)
 
 

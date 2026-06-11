@@ -34,17 +34,37 @@ _here = Path(__file__).parent
 if str(_here) not in sys.path:
     sys.path.insert(0, str(_here))
 
+
+def _read_dotenv_value(path: Path, key: str) -> str | None:
+    """Read one key from a dotenv file without mutating the process env."""
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, _, v = line.partition("=")
+            if k.strip() == key:
+                return v.strip().strip('"').strip("'")
+    except OSError:
+        return None
+    return None
+
+
+SCORER_DOTENV_OPENAI_API_KEY: str | None = None
+
 # Auto-load .env file from project root (parent of skill_detection/)
 try:
     from dotenv import load_dotenv
     for candidate in [_here / ".env", _here.parent / ".env"]:
         if candidate.exists():
+            SCORER_DOTENV_OPENAI_API_KEY = _read_dotenv_value(candidate, "OPENAI_API_KEY")
             load_dotenv(candidate, override=False)
             break
 except ImportError:
     # Fallback if python-dotenv is unavailable
     for candidate in [_here / ".env", _here.parent / ".env"]:
         if candidate.exists():
+            SCORER_DOTENV_OPENAI_API_KEY = _read_dotenv_value(candidate, "OPENAI_API_KEY")
             for line in candidate.read_text(encoding="utf-8").splitlines():
                 line = line.strip()
                 if not line or line.startswith("#") or "=" not in line:
@@ -478,6 +498,15 @@ def _cache_key(model: str, system: str, user: str) -> str:
 _CACHE: dict = _cache_load()
 
 
+def _is_invalid_api_key_error(err_str: str) -> bool:
+    lowered = err_str.lower()
+    return (
+        "invalid_api_key" in lowered
+        or "incorrect api key" in lowered
+        or "error code: 401" in lowered
+    )
+
+
 def call_llm(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
     model = DEFAULT_MODEL  # locked to gpt-4o-mini
     """Query OpenAI Chat Completions API. Returns {"message": {"content": "<text>"}}"""
@@ -499,6 +528,7 @@ def call_llm(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
         return {"message": {"content": _CACHE[ck]}}
 
     client = _OpenAI(api_key=api_key)
+    tried_dotenv_fallback = False
     for _attempt in range(5):
         try:
             resp = client.chat.completions.create(
@@ -525,6 +555,20 @@ def call_llm(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
             break
         except Exception as e:
             err_str = str(e)
+            fallback_key = SCORER_DOTENV_OPENAI_API_KEY or ""
+            if (
+                _is_invalid_api_key_error(err_str)
+                and fallback_key
+                and fallback_key != api_key
+                and not tried_dotenv_fallback
+            ):
+                print("  Backend OpenAI key rejected; retrying with scorer .env key.",
+                      file=sys.stderr)
+                api_key = fallback_key
+                os.environ["OPENAI_API_KEY"] = fallback_key
+                client = _OpenAI(api_key=api_key)
+                tried_dotenv_fallback = True
+                continue
             if "rate_limit_exceeded" in err_str or "429" in err_str:
                 wait_ms = 1000
                 m = re.search(r'try again in (\d+)ms', err_str)

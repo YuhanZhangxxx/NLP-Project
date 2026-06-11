@@ -63,6 +63,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Callable
 
 _here = Path(__file__).parent
 if str(_here) not in sys.path:
@@ -72,6 +73,7 @@ from hybrid_scorer_gpt import DEFAULT_MODEL, LLMError, hybrid_score
 
 SCHEMA_VERSION = 1
 DEFAULT_TIE_THRESHOLD = 0.75
+ProgressCallback = Callable[[dict], None]
 
 
 def _round_winner(score_a: float, score_b: float, tie_threshold: float) -> str:
@@ -91,7 +93,7 @@ def _verdict_summary(a_wins: float, b_wins: float, battler_a: str, battler_b: st
     return "tie", f"Tie {a_wins:g}-{b_wins:g}"
 
 
-def score_match(payload: dict) -> dict:
+def score_match(payload: dict, progress_callback: ProgressCallback | None = None) -> dict:
     """
     Score an N-round match. Pure function: no I/O.
 
@@ -107,11 +109,27 @@ def score_match(payload: dict) -> dict:
     battler_b = payload.get("battler_b") or "B"
     tie_threshold = float(payload.get("tie_threshold") or DEFAULT_TIE_THRESHOLD)
     model = DEFAULT_MODEL  # locked to gpt-4o-mini
+    total_performances = len(rounds_input) * 2
 
     round_results: list[dict] = []
     a_wins = 0.0
     b_wins = 0.0
     prev_b_text: str | None = None  # what A rebuts in rounds 2+
+    completed_performances = 0
+
+    def emit_progress(step: int, message: str) -> None:
+        if not progress_callback:
+            return
+        percent = 15 + int((step / max(total_performances, 1)) * 70)
+        progress_callback({
+            "phase": "scoring",
+            "step": step,
+            "total": total_performances,
+            "percent": percent,
+            "message": message,
+        })
+
+    emit_progress(0, "Preparing AI judge")
 
     for i, pair in enumerate(rounds_input):
         round_num = i + 1
@@ -121,15 +139,22 @@ def score_match(payload: dict) -> dict:
             raise ValueError(f"round {round_num}: both 'a' and 'b' transcripts are required")
 
         # A goes first; rebuts the IMMEDIATELY PRECEDING B (None for round 1).
+        emit_progress(completed_performances, f"Scoring round {round_num}: {battler_a}")
         detail_a = hybrid_score(
             a_text, model=model, round_number=round_num,
             battler=battler_a, opponent_bars=prev_b_text,
         )
+        completed_performances += 1
+        emit_progress(completed_performances, f"Finished round {round_num}: {battler_a}")
+
         # B follows; rebuts A's current round.
+        emit_progress(completed_performances, f"Scoring round {round_num}: {battler_b}")
         detail_b = hybrid_score(
             b_text, model=model, round_number=round_num,
             battler=battler_b, opponent_bars=a_text,
         )
+        completed_performances += 1
+        emit_progress(completed_performances, f"Finished round {round_num}: {battler_b}")
 
         score_a = float(detail_a.get("total_score", 0.0))
         score_b = float(detail_b.get("total_score", 0.0))

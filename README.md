@@ -45,7 +45,9 @@ scale = min(total_lines / 45.0, 3.0)
 ```
 CS486-NLP-Project/
 ├── skill_detection/
-│   ├── hybrid_scorer_gpt.py   ← main scorer (entry point)
+│   ├── hybrid_scorer_gpt.py   ← single-round scorer (entry point)
+│   ├── match_scorer.py        ← multi-round match scorer (stdin JSON → stdout JSON)
+│   ├── score_from_db.py       ← DB-driven scorer: reads transcripts, saves verdict
 │   ├── rap_techniques.py      ← rule-based technique detectors
 │   ├── skill_engine.py        ← rule engine + score_round_json()
 │   └── .llm_cache.json        ← LLM response cache (gitignored)
@@ -155,16 +157,6 @@ python skill_detection/hybrid_scorer_gpt.py "Your bars here..."
 echo "bar bar bar" | python skill_detection/hybrid_scorer_gpt.py
 ```
 
-### Change model
-
-```bash
-# More accurate, higher cost
-python skill_detection/hybrid_scorer_gpt.py --file lyrics.txt --model gpt-4o
-
-# Default (cost-efficient)
-python skill_detection/hybrid_scorer_gpt.py --file lyrics.txt --model gpt-4o-mini
-```
-
 ### Save output to file
 
 ```bash
@@ -200,6 +192,73 @@ python skill_detection/hybrid_scorer_gpt.py --file lyrics.txt > result.json
 
 ---
 
+## Model
+
+**Locked to `gpt-4o-mini`.** The `--model` CLI flag is accepted but ignored. All three entry points (`hybrid_scorer_gpt.py`, `match_scorer.py`, `score_from_db.py`) override any caller-supplied model and always use `gpt-4o-mini`.
+
+---
+
+## Match Scorer (`match_scorer.py`)
+
+Scores a full multi-round match. Reads a JSON payload from stdin, runs `hybrid_score()` for each rapper per round, determines per-round winners, and outputs a structured verdict.
+
+```bash
+cat payload.json | python skill_detection/match_scorer.py
+python skill_detection/match_scorer.py --file payload.json  # debug
+```
+
+**Input:**
+```json
+{
+  "match_id": "optional-uuid",
+  "battler_a": "Rapper A",
+  "battler_b": "Rapper B",
+  "tie_threshold": 0.75,
+  "rounds": [
+    {"a": "A round 1 transcript", "b": "B round 1 transcript"},
+    {"a": "A round 2 transcript", "b": "B round 2 transcript"}
+  ]
+}
+```
+
+**Output:**
+```json
+{
+  "schema_version": 1,
+  "status": "ok",
+  "match_winner": "A",
+  "summary": "Rapper A wins 2-1",
+  "rounds": [
+    {"round": 1, "winner": "A", "score_a": 18.0, "score_b": 12.5, "detail_a": {...}, "detail_b": {...}}
+  ]
+}
+```
+
+Rebuttal chain: B1 rebuts A1, A2 rebuts B1, B2 rebuts A2, etc. — enables STL detection.
+
+---
+
+## DB Scorer (`score_from_db.py`)
+
+End-to-end scorer that reads transcripts from Neon DB, runs `match_scorer`, and optionally saves the verdict + W/L/BP back to the DB. Triggered automatically by the Node.js backend when all rounds of a match are submitted.
+
+```bash
+# Dry run (print verdict only)
+python skill_detection/score_from_db.py --livestream-id <uuid>
+
+# Save verdict to DB
+python skill_detection/score_from_db.py --livestream-id <uuid> --save
+
+# List all livestreams with transcripts
+python skill_detection/score_from_db.py --list
+```
+
+Requires `DATABASE_URL` in `.env`. Rapper A/B order is determined by `livestreams.first_rapper` (explicit) or Round 1 earliest timestamp (fallback).
+
+The scorer is **idempotent** — if a verdict already exists it skips the save and account updates.
+
+---
+
 ## Node.js Backend Integration
 
 The scorer reads from **stdin** when no `--file` or text argument is provided. Typical Express integration:
@@ -223,9 +282,20 @@ score(text: string): Promise<object> {
 }
 ```
 
-Pipeline: **Audio → Deepgram transcription → text → Python scorer (stdin) → JSON**
+**Automatic match scoring pipeline:**
+
+```
+Audio (WebM/Opus)
+  → Deepgram nova-3 transcription
+  → saveTranscript() [DB, idempotent upsert]
+  → becameComplete? → spawnDbScorer(livestreamId)
+      → score_from_db.py --livestream-id <uuid> --save
+          → verdict + W/L/BP written to DB
+```
 
 The scorer's auto-split handles raw Deepgram output (wall-of-text) automatically — no pre-processing needed.
+
+Backend scorer logs are written to `FCPBRL-Backend/logs/scorer-<uuid>.log` (stdout + stderr captured).
 
 ---
 
@@ -255,6 +325,86 @@ The scorer's auto-split handles raw Deepgram output (wall-of-text) automatically
 | CHK | Choke/Turnover | -2.75 | Forgetting lines, restart (rule engine) |
 | FA | Forced Angle | -1.35 | Clearly forced/awkward connection |
 | DRG | Backcourt Viol. | -1.25 | Pure filler lines |
+
+---
+
+## Debugging Scorer in Production
+
+### 1. Check if scorer was triggered
+
+On the backend server, scorer logs are written to `FCPBRL-Backend/logs/scorer-<livestream-uuid>.log`.
+
+```bash
+# List all scorer logs
+ls /home/ec2-user/FCPBRL-Backend/logs/
+
+# If no log file exists for a match → scorer was never triggered
+# (becameComplete never became true — match is likely incomplete)
+```
+
+### 2. Read the scorer log
+
+```bash
+cat /home/ec2-user/FCPBRL-Backend/logs/scorer-<uuid>.log
+```
+
+A successful run ends with:
+```
+[stderr]   Verdict saved: score1=X, score2=Y
+[close] code=0 signal=null
+```
+
+A failed run will show a Python traceback in `[stderr]` lines and `[close] code=1`.
+
+### 3. Check transcript completeness
+
+If no log file exists, the match may be incomplete. Check via DB:
+
+```bash
+node -e "
+const { Pool } = require('pg');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+pool.query(\`
+  SELECT m.total_rounds, m.rapper1_bruf, m.rapper2_bruf,
+         t.round, t.rapper, t.created
+  FROM matches m
+  JOIN transcripts t ON t.livestream_id = m.livestream_id
+  WHERE m.livestream_id = '<uuid>'
+  ORDER BY t.round, t.created
+\`, (err, r) => { console.log(err || JSON.stringify(r.rows, null, 2)); pool.end(); });
+"
+```
+
+Scorer triggers only when `actual == total_rounds * 2` (every rapper has submitted every round).
+
+### 4. Check verdict in DB
+
+```bash
+node -e "
+const { Pool } = require('pg');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+pool.query(\"SELECT score1, score2, verdict FROM matches WHERE livestream_id = '<uuid>'\",
+  (err, r) => { console.log(err || JSON.stringify(r.rows[0], null, 2)); pool.end(); });
+"
+```
+
+`verdict: null` means scorer either hasn't run or failed.
+
+### 5. Manually trigger scorer
+
+If the match is complete but verdict is still null (e.g. scorer crashed), run manually:
+
+```bash
+# On EC2
+cd /home/ec2-user/NLP-Project
+python3 skill_detection/score_from_db.py --livestream-id <uuid> --save
+
+# Locally (Windows)
+cd C:\Users\tuhai\Desktop\CS486-NLP-Project
+.venv\Scripts\python.exe skill_detection/score_from_db.py --livestream-id <uuid> --save
+```
+
+The scorer is idempotent — safe to re-run. If verdict already exists it skips automatically.
 
 ---
 

@@ -22,3 +22,8 @@ data/transcripts/
 # IDE / assistant tooling
 .cursor/
 .claude/
+CLAUDE.md
+HANDOFF.md
+dev_notes.txt
+MATCH_SCORING_PLAN*.md
+dev_credentials.txt
