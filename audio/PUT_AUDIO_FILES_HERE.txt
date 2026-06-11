@@ -1,1 +1,0 @@
-Place your .wav/.mp3/.m4a/.mp4/.mov/.flac/.ogg/.webm files in this folder.

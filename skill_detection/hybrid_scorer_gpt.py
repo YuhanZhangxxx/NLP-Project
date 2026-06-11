@@ -1,39 +1,70 @@
 #!/usr/bin/env python
 """
 Hybrid FCPBRL scorer: rule engine (skill_engine.py) + OpenAI GPT API LLM.
-GPT specialized version — uses OPENAI_API_KEY, defaults to gpt-4o-mini.
+Uses OPENAI_API_KEY, defaults to gpt-4o-mini.
 
 Pipeline:
   1. Rule engine runs first  → reliable DD, TVL structural detections
-  2. Text split into overlapping 6-line windows (stride=4)
+  2. Text split into overlapping 10-line windows (stride=7)
   3. Each window scored by LLM with position context (opener/closer/middle)
   4. required_checks hard gates applied in Python for ES/FCS/SPM/STL
   5. Detections deduped across windows (same skill + overlapping quoted lines → same bar)
   6. Results merged: rule engine wins on structural, LLM wins on semantic
 
 Usage:
-    python skill_detection/hybrid_scorer.py --file lyrics.txt [--battler "Name"] [--round 1]
-    python skill_detection/hybrid_scorer.py --file lyrics.txt --opponent-file prev_round.txt
-    python skill_detection/hybrid_scorer.py "some text"
+    python skill_detection/hybrid_scorer_gpt.py --file lyrics.txt [--battler "Name"] [--round 1]
+    python skill_detection/hybrid_scorer_gpt.py --file lyrics.txt --opponent-file prev_round.txt
+    python skill_detection/hybrid_scorer_gpt.py "some text"
 
 Environment:
-    GOOGLE_API_KEY — required, set your Gemini API key
+    OPENAI_API_KEY — required, set your OpenAI API key
 """
 import argparse
+import difflib
+import hashlib
 import json
+import math
 import os
-import sys
 import re
+import sys
+import time
 from pathlib import Path
 
 _here = Path(__file__).parent
 if str(_here) not in sys.path:
     sys.path.insert(0, str(_here))
 
+
+def _read_dotenv_value(path: Path, key: str) -> str | None:
+    """Read one key from a dotenv file without mutating the process env."""
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, _, v = line.partition("=")
+            if k.strip() == key:
+                return v.strip().strip('"').strip("'")
+    except OSError:
+        return None
+    return None
+
+
+SCORER_DOTENV_OPENAI_API_KEY: str | None = None
+
 # Auto-load .env file from project root (parent of skill_detection/)
-def _load_dotenv():
+try:
+    from dotenv import load_dotenv
     for candidate in [_here / ".env", _here.parent / ".env"]:
         if candidate.exists():
+            SCORER_DOTENV_OPENAI_API_KEY = _read_dotenv_value(candidate, "OPENAI_API_KEY")
+            load_dotenv(candidate, override=False)
+            break
+except ImportError:
+    # Fallback if python-dotenv is unavailable
+    for candidate in [_here / ".env", _here.parent / ".env"]:
+        if candidate.exists():
+            SCORER_DOTENV_OPENAI_API_KEY = _read_dotenv_value(candidate, "OPENAI_API_KEY")
             for line in candidate.read_text(encoding="utf-8").splitlines():
                 line = line.strip()
                 if not line or line.startswith("#") or "=" not in line:
@@ -44,16 +75,12 @@ def _load_dotenv():
                 if k and k not in os.environ:
                     os.environ[k] = v
             break
-_load_dotenv()
+
+
+class LLMError(RuntimeError):
+    """Raised when the LLM API call fails (missing key, exhausted retries, etc.)."""
 
 from skill_engine import score_round_json
-
-try:
-    from google import genai
-    from google.genai import types as genai_types
-    _GENAI_AVAILABLE = True
-except ImportError:
-    _GENAI_AVAILABLE = False
 
 try:
     from openai import OpenAI as _OpenAI
@@ -62,8 +89,6 @@ except ImportError:
     _OPENAI_AVAILABLE = False
 
 DEFAULT_MODEL = "gpt-4o-mini"
-DEFAULT_MODEL_OPENAI = "gpt-4o-mini"
-_PROVIDER = "openai"  # locked: OpenAI GPT specialized version
 
 WINDOW_SIZE = 10   # lines per window
 WINDOW_OVERLAP = 3  # lines shared with previous window (stride = WINDOW_SIZE - WINDOW_OVERLAP)
@@ -110,11 +135,11 @@ LU   Layup           +1.25  Simple effective bar with a clean double meaning. Mu
 FL   Floater         +0.75  Light clever wordplay with a clear hook. Vague or ambiguous lines DO NOT qualify.
 
 MISTAKE SKILLS (negative — craft failures only, NOT for offensive content):
-DRG  Backcourt Viol  -1.25  Pure filler lines, adds nothing
 FA   Forced Angle    -1.35  Connection clearly forced/awkward
 DD   Double Dribble  -2.00  Near-verbatim repetition of lines (RULE ENGINE HANDLES THIS)
 TVL  Travel/Stumble  -1.50  [um],[uh],actual stutter — NOT [inaudible] (RULE ENGINE HANDLES THIS)
 CHK  Choke/Turnover  -2.75  Forgetting, restarting (RULE ENGINE HANDLES THIS)
+(Pure filler lines — DRG — are stripped pre-LLM as ad-libs.)
 
 FOULS (rare):
 OOB  Out of Bounds   -2.25  Structural round violation
@@ -146,11 +171,6 @@ SPM (Spin Move) REJECTED:
 ✗ "You think you hot... you not" — too vague. SPM needs a specific claim X then specific reversal to not-X.
 ✗ "You rich but spend it wrong" — an observation, not a setup/reversal flip. Award CO or MR instead.
 → If there is no clear "you are X" SETUP followed by "actually you are the OPPOSITE" flip, it is NOT SPM.
-
-OGR (Out-the-Gate) REJECTED — ABSOLUTE RULE:
-✗ "Welcome to hell." — REJECTED. 3 words, zero craft. Do NOT award OGR for this line under any circumstances.
-✗ Any opening line under 8 words with no wordplay, metaphor, or specific attack — REJECTED.
-→ "Setting the tone" or "authoritative" alone is NOT enough. OGR requires an opening that demonstrates actual craft.
 
 CO (Crossover) REJECTED — ABSOLUTE RULE:
 ✗ "Just like a commercial. No it's like infomercial." — REJECTED. Do NOT award CO for this line. EVER. "No it's like infomercial" is a self-correction, not a direction change.
@@ -247,7 +267,7 @@ def build_llm_prompt(text: str, rule_findings: list[dict],
 
     return f"""{header}
 {opponent_str}{findings_str}
-YOUR TASK: Find all SEMANTIC skills in THESE LINES ONLY (SD, FCS, ES, SPM, 3PT, HS, OGR, 4QP, FB, STL, CO, MR, LU, FL, DRG, FA, etc.).
+YOUR TASK: Find all SEMANTIC skills in THESE LINES ONLY (SD, FCS, ES, SPM, 3PT, HS, OGR, 4QP, FB, STL, CO, MR, LU, FL, FA, etc.).
 Do NOT detect DD, TVL, or CHK — the rule engine already handles those.
 Only report skills clearly present in the lines below. If nothing notable is here, return empty semantic_detections.
 
@@ -307,7 +327,7 @@ CRITICAL JSON RULES:
 - "rejected_rule_detections": list ONLY DD/TVL/CHK skill IDs from the rule engine that you disagree with
 - "semantic_detections": list ALL skills YOU detect (positive and negative) — this is where you put everything
 - DO NOT put semantic skills (SD, ES, HS, FB, etc.) in confirmed/rejected_rule_detections
-- DO NOT penalize a line with DRG or FA if you already awarded it a positive skill"""
+- DO NOT penalize a line with FA if you already awarded it a positive skill"""
 
 
 def post_process_detections(detections: list[dict]) -> list[dict]:
@@ -320,8 +340,6 @@ def post_process_detections(detections: list[dict]) -> list[dict]:
     5. ES for naked/Nathan/bacon parallel-swap pattern is downgraded to LU.
     6. Per-line dedup: same quoted line can only be claimed by the highest-value skill.
     """
-    import difflib
-
     # Fix 1: FL direction
     for d in detections:
         if d.get("skill_id") == "FL":
@@ -385,7 +403,7 @@ def post_process_detections(detections: list[dict]) -> list[dict]:
             d["points"] = 1.25
             d["gate_note"] = "ES rejected: parallel swap (naked/Nathan/bacon) is not a linear chain"
 
-    # Fix 3: per-line dedup — each quoted line belongs to at most 1 positive skill
+    # Fix 6: per-line dedup — each quoted line belongs to at most 1 positive skill
     # Build map: normalized_line -> best detection index
     line_owner: dict[str, int] = {}  # line_key -> index in detections list
     for idx, d in enumerate(detections):
@@ -475,95 +493,95 @@ def _cache_save(cache: dict) -> None:
         pass
 
 def _cache_key(model: str, system: str, user: str) -> str:
-    import hashlib
     return hashlib.md5(f"{model}\x00{system}\x00{user}".encode("utf-8")).hexdigest()
 
 _CACHE: dict = _cache_load()
 
 
-def query_ollama(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
-    """Query LLM API (Gemini or OpenAI). Returns {"message": {"content": "<text>"}}"""
+def _is_invalid_api_key_error(err_str: str) -> bool:
+    lowered = err_str.lower()
+    return (
+        "invalid_api_key" in lowered
+        or "incorrect api key" in lowered
+        or "error code: 401" in lowered
+    )
+
+
+def call_llm(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
+    model = DEFAULT_MODEL  # locked to gpt-4o-mini
+    """Query OpenAI Chat Completions API. Returns {"message": {"content": "<text>"}}"""
     # Normalize unicode chars that cause ASCII codec errors on Windows
     _uni = str.maketrans({'\u2014': '--', '\u2026': '...', '\u2192': '->', '\u2260': '!='})
     safe_system = SYSTEM_PROMPT.translate(_uni)
     safe_msg = user_msg.translate(_uni)
 
-    if _PROVIDER == "openai":
-        if not _OPENAI_AVAILABLE:
-            print("ERROR: openai not installed. Run: pip install openai", file=sys.stderr)
-            sys.exit(1)
-        api_key = os.environ.get("OPENAI_API_KEY", "")
-        if not api_key:
-            print("ERROR: OPENAI_API_KEY environment variable not set.", file=sys.stderr)
-            sys.exit(1)
-        oai_model = model if model != DEFAULT_MODEL else DEFAULT_MODEL_OPENAI
-
-        # Cache check
-        ck = _cache_key(oai_model, safe_system, safe_msg)
-        if ck in _CACHE:
-            print("  [cache hit]", file=sys.stderr)
-            return {"message": {"content": _CACHE[ck]}}
-
-        client = _OpenAI(api_key=api_key)
-        import time as _time
-        for _attempt in range(5):
-            try:
-                resp = client.chat.completions.create(
-                    model=oai_model,
-                    messages=[
-                        {"role": "system", "content": safe_system},
-                        {"role": "user", "content": safe_msg},
-                    ],
-                    temperature=0.1,
-                    max_tokens=4096,
-                )
-                text = resp.choices[0].message.content
-                _CACHE[ck] = text
-                _cache_save(_CACHE)
-                break
-            except Exception as e:
-                err_str = str(e)
-                if "rate_limit_exceeded" in err_str or "429" in err_str:
-                    import re as _re
-                    wait_ms = 1000
-                    m = _re.search(r'try again in (\d+)ms', err_str)
-                    if m:
-                        wait_ms = int(m.group(1)) + 500
-                    else:
-                        wait_ms = (2 ** _attempt) * 2000
-                    print(f"  Rate limit hit, waiting {wait_ms}ms...", file=sys.stderr)
-                    _time.sleep(wait_ms / 1000.0)
-                    continue
-                print(f"OpenAI API error: {e}", file=sys.stderr)
-                sys.exit(1)
-        else:
-            print("OpenAI API error: rate limit retries exhausted.", file=sys.stderr)
-            sys.exit(1)
-        return {"message": {"content": text}}
-
-    # Default: Gemini
-    if not _GENAI_AVAILABLE:
-        print("ERROR: google-genai not installed. Run: pip install google-genai", file=sys.stderr)
-        sys.exit(1)
-    api_key = os.environ.get("GOOGLE_API_KEY", "")
+    if not _OPENAI_AVAILABLE:
+        raise LLMError("openai not installed. Run: pip install openai")
+    api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
-        print("ERROR: GOOGLE_API_KEY environment variable not set.", file=sys.stderr)
-        sys.exit(1)
-    client = genai.Client(api_key=api_key)
-    try:
-        response = client.models.generate_content(
-            model=model,
-            contents=safe_msg,
-            config=genai_types.GenerateContentConfig(
-                system_instruction=safe_system,
+        raise LLMError("OPENAI_API_KEY environment variable not set.")
+
+    # Cache check
+    ck = _cache_key(model, safe_system, safe_msg)
+    if ck in _CACHE:
+        print("  [cache hit]", file=sys.stderr)
+        return {"message": {"content": _CACHE[ck]}}
+
+    client = _OpenAI(api_key=api_key)
+    tried_dotenv_fallback = False
+    for _attempt in range(5):
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": safe_system},
+                    {"role": "user", "content": safe_msg},
+                ],
                 temperature=0.1,
-                max_output_tokens=4096,
-            ),
-        )
-        text = response.text
-    except Exception as e:
-        print(f"Gemini API error: {e}", file=sys.stderr)
-        sys.exit(1)
+                max_tokens=4096,
+            )
+            text = resp.choices[0].message.content
+            # Log OpenAI prompt-cache hit ratio (system prompt re-use)
+            usage = getattr(resp, "usage", None)
+            if usage is not None:
+                prompt_toks = getattr(usage, "prompt_tokens", 0)
+                details = getattr(usage, "prompt_tokens_details", None)
+                cached = getattr(details, "cached_tokens", 0) if details else 0
+                if prompt_toks:
+                    print(f"  [api] prompt={prompt_toks} cached={cached} "
+                          f"({100 * cached / prompt_toks:.0f}%)", file=sys.stderr)
+            _CACHE[ck] = text
+            _cache_save(_CACHE)
+            break
+        except Exception as e:
+            err_str = str(e)
+            fallback_key = SCORER_DOTENV_OPENAI_API_KEY or ""
+            if (
+                _is_invalid_api_key_error(err_str)
+                and fallback_key
+                and fallback_key != api_key
+                and not tried_dotenv_fallback
+            ):
+                print("  Backend OpenAI key rejected; retrying with scorer .env key.",
+                      file=sys.stderr)
+                api_key = fallback_key
+                os.environ["OPENAI_API_KEY"] = fallback_key
+                client = _OpenAI(api_key=api_key)
+                tried_dotenv_fallback = True
+                continue
+            if "rate_limit_exceeded" in err_str or "429" in err_str:
+                wait_ms = 1000
+                m = re.search(r'try again in (\d+)ms', err_str)
+                if m:
+                    wait_ms = int(m.group(1)) + 500
+                else:
+                    wait_ms = (2 ** _attempt) * 2000
+                print(f"  Rate limit hit, waiting {wait_ms}ms...", file=sys.stderr)
+                time.sleep(wait_ms / 1000.0)
+                continue
+            raise LLMError(f"OpenAI API error: {e}") from e
+    else:
+        raise LLMError("OpenAI API error: rate limit retries exhausted.")
     return {"message": {"content": text}}
 
 
@@ -644,9 +662,6 @@ def deduplicate_detections(detections: list[dict], total_lines: int = 45) -> lis
     Caps scale with round length. Base calibration = 45 lines.
     Structural skills (OGR, 4QP, SD, etc.) are always capped at 1 regardless.
     """
-    import difflib
-    import math
-
     # Base caps calibrated for ~45-line rounds
     BASE_COUNTS: dict[str, int] = {
         "FCS": 1, "OGR": 1, "4QP": 1,
@@ -734,8 +749,6 @@ def _is_deliberate_dd(detection: dict) -> bool:
 
     Evidence format: 'Near-repeat (similarity 97%): "line_a" ≈ "line_b"'
     """
-    import re
-
     if detection.get("skill_id") != "DD":
         return False
 
@@ -752,6 +765,144 @@ def _is_deliberate_dd(detection: dict) -> bool:
     return False
 
 
+# Battle-rap slang frequently mistranscribed by Whisper / Deepgram.
+# Pattern -> replacement (case-insensitive, word-boundary aware).
+# Add new entries only after observing actual mistakes in data/transcripts/.
+_SLANG_CORRECTIONS: list[tuple[str, str]] = [
+    # weapons / props
+    (r"\btech knives\b", "tech nines"),
+    (r"\bblip jam\b", "blick jam"),
+    (r"\bblip(?= pop| spray| boom)", "blick"),
+    (r"\bglock 40\b", "Glock 40"),
+    # AAVE words Whisper often spells exotically
+    (r"\bglissies\b", "glizzies"),
+    (r"\bglissys\b", "glizzies"),
+    # religious refs (battle rap regulars)
+    (r"\bchris(t)? on biases\b", "christened biases"),
+    (r"\bchurch bands\b", "church vans"),
+    (r"\bchurch vets\b", "church vans"),
+    # bars-vs-bars common misses
+    (r"\blet'?s love\b(?= I'?ll send| I send)", "let fly"),
+    (r"\bain'?t a cracker cuz in your heart you ain'?t got no hate for my (car|con)\b",
+     "ain't a cracker cuz in your heart you ain't got no hate for my kind"),
+]
+
+
+def _correct_slang(text: str) -> str:
+    """Apply known transcription error fixes before scoring. Token-neutral."""
+    for pattern, repl in _SLANG_CORRECTIONS:
+        text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
+    return text
+
+
+# Wordplay markers used to detect "craft" in short openers.
+# If the opening line is < 8 words AND has none of these, OGR is blocked
+# without consulting the LLM.
+# Wordplay markers that *disqualify* the short-opener block. We want the
+# noun-comparison "like" ("silent like a panther"), not the verb "like"
+# ("I like burgers") or the flippant "feels like shit". Use narrow patterns.
+_OGR_CRAFT_MARKERS = re.compile(
+    r"\b("
+    r"like (?:a|an|the|that|those|you|this)\b|"   # simile: "like a ..."
+    r"as if\b|as a\b|"                            # similes
+    r"than (?:a|an|the)\b|"                       # comparative: "than a ..."
+    r"more \w+ than\b|less \w+ than\b"            # explicit comparative
+    r")",
+    re.IGNORECASE,
+)
+
+
+# Standalone ad-lib lines that contribute no skill content. Drop entire
+# lines that match (≥80% of words are ad-lib filler). Don't strip mid-bar
+# occurrences — "you know what I'm saying" inside a real bar can still be
+# a delivery beat.
+_ADLIB_PATTERNS = [
+    re.compile(r"^(yo|yeah|uh-?huh|okay|alright|aight|check it( out)?)\b[\s,.\-]*$", re.IGNORECASE),
+    re.compile(r"^(you know( what)?( i)?[\'']?m sayin[\'g]?|feel me|ya feel me)\b[\s,.\-]*$", re.IGNORECASE),
+    re.compile(r"^(yeah\s+)+yeah\b[\s,.\-]*$", re.IGNORECASE),  # "yeah yeah yeah ..."
+    re.compile(r"^(let'?s go|let'?s get it|come on)\b[\s,.\-!]*$", re.IGNORECASE),
+]
+
+
+def _strip_adlib_lines(text: str) -> str:
+    """
+    Drop whole lines that consist only of crowd-call ad-libs. Run AFTER
+    _auto_split_lines (otherwise it skews the avg-words-per-line heuristic).
+    """
+    kept = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            kept.append(line)
+            continue
+        if any(p.match(stripped) for p in _ADLIB_PATTERNS):
+            continue  # drop
+        kept.append(line)
+    return "\n".join(kept)
+
+
+def _should_block_ogr(text: str) -> bool:
+    """
+    Block OGR when the round's opening "phrase" is short and generic. Looks
+    at the first ~10 words (not the whole first line), since wall-of-text
+    transcripts can squash many bars into one long line.
+
+    Block iff the opening phrase (first 10 words OR up to first sentence
+    boundary) lacks any wordplay marker AND matches a generic-opener
+    pattern (welcome / yo / what's up / let's go / etc.).
+    """
+    # Get the first non-blank line, then the first chunk up to a sentence/comma break.
+    first_line = next((l.strip() for l in text.splitlines() if l.strip()), "")
+    if not first_line:
+        return False
+    # First 10 words of the round (LLM tends to award OGR on this opening phrase).
+    chunk_words = first_line.split()[:10]
+    chunk = " ".join(chunk_words)
+    if _OGR_CRAFT_MARKERS.search(chunk):
+        return False  # has wordplay markers
+    # Generic-opener phrase patterns; if any appears within first 10 words, block.
+    generic = re.compile(
+        r"\b(welcome to (hell|the show)|let'?s go|"
+        r"yo what'?s up|what'?s up|aye yo|this is the )\b",
+        re.IGNORECASE,
+    )
+    return bool(generic.search(chunk))
+
+
+def _auto_split_lines(text: str) -> str:
+    """
+    If text looks like a wall-of-text (Deepgram raw output with no line breaks),
+    split it into per-bar lines using sentence boundaries and comma breaks.
+    Leaves already-formatted text (multiple short lines) unchanged.
+    """
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    if not lines:
+        return text
+    words = text.split()
+    avg_words = len(words) / len(lines)
+    if avg_words <= 15:
+        return text  # already properly formatted
+
+    # Split on sentence-ending punctuation
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    result = []
+    for sent in sentences:
+        sent = sent.strip()
+        if not sent:
+            continue
+        # Further split long sentences on commas
+        if len(sent.split()) > 18:
+            parts = re.split(r',\s+', sent)
+            result.extend(p.strip() for p in parts if p.strip())
+        else:
+            result.append(sent)
+    reformatted = '\n'.join(result)
+    print(f"  [auto-split] Wall-of-text detected ({len(lines)} raw lines, "
+          f"avg {avg_words:.0f} words/line) → split into {len(result)} lines",
+          file=sys.stderr)
+    return reformatted
+
+
 def hybrid_score(
     text: str,
     model: str = DEFAULT_MODEL,
@@ -759,13 +910,19 @@ def hybrid_score(
     battler: str = None,
     opponent_bars: str = None,
 ) -> dict:
+    model = DEFAULT_MODEL  # locked to gpt-4o-mini
+    text = _correct_slang(text)
+    text = _auto_split_lines(text)
+    text = _strip_adlib_lines(text)
+    block_ogr = _should_block_ogr(text)
     # Step 1: Rule engine (full text)
     print("Step 1: Running rule engine...", file=sys.stderr)
+    # score_round_json() serializes via RoundSummary.to_dict() which exposes
+    # detections under "lines"[i]["skills"] — there is no top-level "all_detections".
     rule_result = score_round_json(text, round_number=round_number, battler=battler)
-    rule_detections = rule_result.get("all_detections") or []
-    if not rule_detections:
-        for line in rule_result.get("lines", []):
-            rule_detections.extend(line.get("skills", []))
+    rule_detections = []
+    for line in rule_result.get("lines", []):
+        rule_detections.extend(line.get("skills", []))
 
     trusted = [d for d in rule_detections if d["skill_id"] in RULE_ENGINE_TRUSTED]
     print(f"  Rule engine: {len(trusted)} trusted detections "
@@ -787,12 +944,20 @@ def hybrid_score(
     for win_idx, (start, end, win_text) in enumerate(windows):
         is_opener = (start == 0)
         is_closer = (end >= total_lines - 2)  # last window or second-to-last
+        # For rounds < WINDOW_SIZE lines, the single window is BOTH opener and
+        # closer. The branching below checks opener first, so 4QP is dropped
+        # on short rounds; the LLM sees only the opener position_note.
 
-        if is_opener:
+        if is_opener and not block_ogr:
             position_note = (
                 "ROUND POSITION: THIS IS THE OPENING WINDOW (first lines of the round). "
                 "REQUIRED: If the battler opens with authority, confidence, or a strong hook, AWARD OGR (+2.00). "
                 "The first strong bar in the round is the OGR candidate. Do NOT award 4QP here."
+            )
+        elif is_opener and block_ogr:
+            position_note = (
+                "ROUND POSITION: opening window. The opening line is too short / generic "
+                "to qualify for OGR — DO NOT award OGR. Do NOT award 4QP here either."
             )
         elif is_closer:
             position_note = (
@@ -816,7 +981,7 @@ def hybrid_score(
             window_info=f"(lines {start + 1}–{end + 1} of {total_lines})",
         )
 
-        llm_raw = query_ollama(user_msg, model)
+        llm_raw = call_llm(user_msg, model)
         llm_content = llm_raw.get("message", {}).get("content", "")
         llm_result = extract_json(llm_content)
 
@@ -831,7 +996,7 @@ def hybrid_score(
             )
             if "qwen3" in model.lower():
                 retry_msg += "\n/no_think"
-            llm_raw2 = query_ollama(retry_msg, model)
+            llm_raw2 = call_llm(retry_msg, model)
             llm_content = llm_raw2.get("message", {}).get("content", "")
             llm_result = extract_json(llm_content)
             if "error" in llm_result:
@@ -841,7 +1006,7 @@ def hybrid_score(
 
         win_detections = llm_result.get("semantic_detections", [])
         # Enforce position rules in Python (model sometimes ignores prompt instructions)
-        if not is_opener:
+        if not is_opener or block_ogr:
             win_detections = [d for d in win_detections if d.get("skill_id") != "OGR"]
         if not is_closer:
             win_detections = [d for d in win_detections if d.get("skill_id") != "4QP"]
@@ -857,8 +1022,7 @@ def hybrid_score(
               file=sys.stderr)
         # Brief pause between windows to avoid TPM rate limits on long rounds
         if win_idx < len(windows) - 1:
-            import time as _time
-            _time.sleep(1.5)
+            time.sleep(1.5)
 
     # Step 3: Dedup across windows, then apply hard gates
     semantic_deduped = deduplicate_detections(all_semantic_raw, total_lines=total_lines)
@@ -944,7 +1108,7 @@ def main():
     ap = argparse.ArgumentParser(description="Hybrid rule+LLM FCPBRL scorer")
     ap.add_argument("text", nargs="?", help="Lyrics text")
     ap.add_argument("--file", "-f", help="Path to lyrics file")
-    ap.add_argument("--model", "-m", default=DEFAULT_MODEL)
+    ap.add_argument("--model", "-m", default=DEFAULT_MODEL, help="(ignored, locked to gpt-4o-mini)")
     ap.add_argument("--round", "-r", type=int, default=None)
     ap.add_argument("--battler", "-b", default=None)
     ap.add_argument("--opponent-bars", help="Opponent's bars as inline text (for STL detection)")
@@ -965,10 +1129,14 @@ def main():
     elif args.opponent_bars:
         opponent_bars = args.opponent_bars
 
-    result = hybrid_score(text, model=args.model,
-                          round_number=args.round, battler=args.battler,
-                          opponent_bars=opponent_bars)
-    print(json.dumps(result, indent=2, ensure_ascii=False))
+    try:
+        result = hybrid_score(text, model=args.model,
+                              round_number=args.round, battler=args.battler,
+                              opponent_bars=opponent_bars)
+    except LLMError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(1)
+    print(json.dumps(result, indent=2, ensure_ascii=True))
 
 
 if __name__ == "__main__":
