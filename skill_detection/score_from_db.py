@@ -368,6 +368,7 @@ def main():
     ap.add_argument("--save", action="store_true", help="Save verdict back to matches table")
     ap.add_argument("--list", action="store_true", help="List livestreams with transcripts")
     ap.add_argument("--tie-threshold", type=float, default=0.75)
+    ap.add_argument("--model", "-m", help="OpenAI judge model (or set OPENAI_JUDGE_MODEL)")
     ap.add_argument("--force", action="store_true", help="Overwrite an existing match verdict")
     ap.add_argument("--skip-account-updates", action="store_true",
                     help="Save match scores/verdict without updating account W/L/BP/HPRP")
@@ -396,6 +397,8 @@ def main():
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
     payload["tie_threshold"] = args.tie_threshold
+    if args.model:
+        payload["model"] = args.model
     print(f"  Battler A: {payload['battler_a']} (bruf={rapper_a_id})", file=sys.stderr)
     print(f"  Battler B: {payload['battler_b']} (bruf={rapper_b_id})", file=sys.stderr)
     print(f"  Rounds: {len(payload['rounds'])}", file=sys.stderr)

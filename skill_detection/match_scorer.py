@@ -61,6 +61,7 @@ Usage:
 """
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Callable
@@ -69,7 +70,7 @@ _here = Path(__file__).parent
 if str(_here) not in sys.path:
     sys.path.insert(0, str(_here))
 
-from hybrid_scorer_gpt import DEFAULT_MODEL, LLMError, hybrid_score
+from hybrid_scorer_gpt import DEFAULT_MODEL, LLMError, get_usage, hybrid_score, reset_usage
 
 SCHEMA_VERSION = 1
 DEFAULT_TIE_THRESHOLD = 0.75
@@ -108,8 +109,9 @@ def score_match(payload: dict, progress_callback: ProgressCallback | None = None
     battler_a = payload.get("battler_a") or "A"
     battler_b = payload.get("battler_b") or "B"
     tie_threshold = float(payload.get("tie_threshold") or DEFAULT_TIE_THRESHOLD)
-    model = DEFAULT_MODEL  # locked to gpt-4o-mini
+    model = str(payload.get("model") or os.environ.get("OPENAI_JUDGE_MODEL") or DEFAULT_MODEL)
     total_performances = len(rounds_input) * 2
+    reset_usage()
 
     round_results: list[dict] = []
     a_wins = 0.0
@@ -189,6 +191,7 @@ def score_match(payload: dict, progress_callback: ProgressCallback | None = None
         "rounds": round_results,
         "match_winner": match_winner,
         "summary": summary,
+        "usage": get_usage(),
         "error": None,
     }
 
@@ -202,18 +205,22 @@ def _error_envelope(msg: str, match_id=None) -> dict:
         "rounds": [],
         "match_winner": None,
         "summary": None,
+        "usage": get_usage(),
     }
 
 
 def main():
     ap = argparse.ArgumentParser(description="Multi-round match scorer (stdin JSON in, stdout JSON out)")
     ap.add_argument("--file", "-f", help="Read payload from JSON file (debug); default is stdin")
+    ap.add_argument("--model", "-m", help="Override the payload/environment judge model")
     args = ap.parse_args()
 
     raw = Path(args.file).read_text(encoding="utf-8") if args.file else sys.stdin.read()
     match_id = None
     try:
         payload = json.loads(raw)
+        if args.model:
+            payload["model"] = args.model
         match_id = payload.get("match_id") if isinstance(payload, dict) else None
         result = score_match(payload)
     except json.JSONDecodeError as e:

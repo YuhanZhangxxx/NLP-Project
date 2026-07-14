@@ -88,7 +88,7 @@ try:
 except ImportError:
     _OPENAI_AVAILABLE = False
 
-DEFAULT_MODEL = "gpt-4o-mini"
+DEFAULT_MODEL = os.environ.get("OPENAI_JUDGE_MODEL", "gpt-4o-mini")
 
 WINDOW_SIZE = 10   # lines per window
 WINDOW_OVERLAP = 3  # lines shared with previous window (stride = WINDOW_SIZE - WINDOW_OVERLAP)
@@ -99,11 +99,37 @@ RULE_ENGINE_TRUSTED = {"DD", "TVL", "CHK"}
 # Skills the rule engine cannot detect — LLM only
 LLM_ONLY_SKILLS = {"SD", "HCS", "FCS", "ES", "SPM", "3PT", "STL", "CO", "HS",
                    "OGR", "4QP", "FB", "AND1", "ALY", "PM", "PNR", "ISO",
-                   "BKW", "MR", "LU", "REB", "NLP", "FL", "OFT", "CAR", "FA",
+                   "BKW", "MR", "DT", "LU", "REB", "A1B", "BOX", "NLP", "PF",
+                   "FL", "TIP", "BLK", "MFT", "XFT", "OFT", "CAR", "FA",
                    "OOB", "TECH", "PC", "GTD", "BV"}
 
 # Skills that require required_checks hard gates (Python enforces these, not just the model)
 GATED_SKILLS = {"ES", "FCS", "SPM", "STL"}
+
+SKILL_META = {
+    "FCS": ("Full-Court Shot", 5.00), "SD": ("Slam Dunk", 4.25),
+    "HCS": ("Half-Court Shot", 3.75), "ALY": ("Alley-Oop", 3.50),
+    "AND1": ("And-1", 3.25), "FB": ("Fast Break", 3.00),
+    "3PT": ("3-Pointer", 2.85), "ES": ("Euro Step", 2.75),
+    "STL": ("Steal / Rebuttal", 2.50), "CO": ("Crossover", 2.25),
+    "HS": ("Hook Shot", 2.00), "OGR": ("Out-the-Gate", 2.00),
+    "4QP": ("Fourth-Quarter", 2.00), "SPM": ("Spin Move", 1.90),
+    "PM": ("Post Move", 1.75), "PNR": ("Pick & Roll", 1.65),
+    "ISO": ("Isolation", 1.50), "BKW": ("Breakaway", 1.40),
+    "MR": ("Mid-Range", 1.35), "DT": ("Double Team", 1.20),
+    "LU": ("Layup", 1.25), "REB": ("Rebound", 1.15),
+    "A1B": ("And-1 Block", 1.10), "BOX": ("Box Out", 1.00),
+    "NLP": ("No-Look Pass", 0.90), "PF": ("Pump Fake", 0.85),
+    "FL": ("Floater", 0.75), "TIP": ("Tip-In", 0.60),
+    "BLK": ("Block", 0.50), "MFT": ("Made Free Throw", 0.25),
+    "XFT": ("Missed Free Throw", -0.25), "OFT": ("Offensive Foul", -0.50),
+    "CAR": ("Carry", -1.00), "DRG": ("Backcourt Violation", -1.25),
+    "FA": ("Charge / Forced Angle", -1.35), "TVL": ("Travel / Stumble", -1.50),
+    "DD": ("Double Dribble", -2.00), "OOB": ("Out of Bounds", -2.25),
+    "CHK": ("Turnover / Choke", -2.75), "TECH": ("Technical Foul", -3.00),
+    "PC": ("Defensive Foul", -3.00), "GTD": ("Goaltending", -3.50),
+    "BV": ("Boundary Violation", -4.00),
+}
 
 BATTLE_RAP_CONTEXT = """
 CRITICAL CONTEXT:
@@ -129,12 +155,24 @@ OGR  Out-the-Gate    +2.00  Strong authoritative opener in first 20% of round. A
 4QP  Fourth-Quarter  +2.00  Strong impactful closer in last 20% of round
 SPM  Spin Move       +1.90  Setup/reversal: "you're X… but actually opposite of X"
 PM   Post Move       +1.75  Extended identity breakdown over 3+ lines
+PNR  Pick & Roll     +1.65  Clear setup feeding directly into a self-generated punch
 ISO  Isolation       +1.50  Sustained 4+ line attack on one specific topic
+BKW  Breakaway       +1.40  Extended clean run of smooth material without losing momentum
 MR   Mid-Range       +1.35  Well-crafted solid bar with a clear punch, lands cleanly. Generic threats or bragging with no craft DO NOT qualify. Max 2 per round.
+DT   Double Team     +1.20  Crowd/team momentum trap where outside reaction or partner energy overwhelms opponent
 LU   Layup           +1.25  Simple effective bar with a clean double meaning. Must have an actual second meaning. Max 1 per round.
+REB  Rebound         +1.15  Strong recovery after stumble/choke or after opponent pressure
+A1B  And-1 Block     +1.10  Punch lands while opponent interrupts/objects; interference becomes part of the bar
+BOX  Box Out         +1.00  Stage-presence/control line that crowds opponent's space without contact
+NLP  No-Look Pass    +0.90  Subtle setup/punch hidden behind casual wording
+PF   Pump Fake       +0.85  Fake haymaker/setup used intentionally to redirect or undercut expectation
 FL   Floater         +0.75  Light clever wordplay with a clear hook. Vague or ambiguous lines DO NOT qualify.
+TIP  Tip-In          +0.60  Clever add-on that rescues or improves a weaker preceding bar
+BLK  Block           +0.50  Premeditated knowledge/prediction of opponent's angle or bar
+MFT  Made Free Throw +0.25  Small indirect jab that lands cleanly
 
 MISTAKE SKILLS (negative — craft failures only, NOT for offensive content):
+XFT  Missed Free Throw -0.25  Small indirect jab that clearly misses or falls flat
 FA   Forced Angle    -1.35  Connection clearly forced/awkward
 DD   Double Dribble  -2.00  Near-verbatim repetition of lines (RULE ENGINE HANDLES THIS)
 TVL  Travel/Stumble  -1.50  [um],[uh],actual stutter — NOT [inaudible] (RULE ENGINE HANDLES THIS)
@@ -267,7 +305,7 @@ def build_llm_prompt(text: str, rule_findings: list[dict],
 
     return f"""{header}
 {opponent_str}{findings_str}
-YOUR TASK: Find all SEMANTIC skills in THESE LINES ONLY (SD, FCS, ES, SPM, 3PT, HS, OGR, 4QP, FB, STL, CO, MR, LU, FL, FA, etc.).
+YOUR TASK: Find all SEMANTIC skills in THESE LINES ONLY (SD, FCS, HCS, ALY, AND1, FB, 3PT, ES, STL, CO, HS, OGR, 4QP, SPM, PM, PNR, ISO, BKW, MR, DT, LU, REB, A1B, BOX, NLP, PF, FL, TIP, BLK, MFT, XFT, FA, OFT, CAR, OOB, TECH, PC, GTD, BV, etc.).
 Do NOT detect DD, TVL, or CHK — the rule engine already handles those.
 Only report skills clearly present in the lines below. If nothing notable is here, return empty semantic_detections.
 
@@ -340,6 +378,21 @@ def post_process_detections(detections: list[dict]) -> list[dict]:
     5. ES for naked/Nathan/bacon parallel-swap pattern is downgraded to LU.
     6. Per-line dedup: same quoted line can only be claimed by the highest-value skill.
     """
+    # Normalize names/points/direction to the local registry. The LLM decides
+    # whether a skill is present; Python keeps the scoring constants stable.
+    normalized: list[dict] = []
+    for d in detections:
+        sid = str(d.get("skill_id", "")).strip().upper()
+        if sid not in SKILL_META:
+            continue
+        name, pts = SKILL_META[sid]
+        d["skill_id"] = sid
+        d["skill_name"] = name
+        d["points"] = pts
+        d["direction"] = "negative" if pts < 0 else "positive"
+        normalized.append(d)
+    detections = normalized
+
     # Fix 1: FL direction
     for d in detections:
         if d.get("skill_id") == "FL":
@@ -496,6 +549,28 @@ def _cache_key(model: str, system: str, user: str) -> str:
     return hashlib.md5(f"{model}\x00{system}\x00{user}".encode("utf-8")).hexdigest()
 
 _CACHE: dict = _cache_load()
+_USAGE_TOTAL = {
+    "prompt_tokens": 0,
+    "cached_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0,
+    "api_calls": 0,
+}
+
+
+def reset_usage() -> None:
+    for key in _USAGE_TOTAL:
+        _USAGE_TOTAL[key] = 0
+
+
+def get_usage() -> dict:
+    return dict(_USAGE_TOTAL)
+
+
+def _cache_enabled() -> bool:
+    return os.environ.get("OPENAI_DISABLE_CACHE", "").strip().lower() not in {
+        "1", "true", "yes", "on",
+    }
 
 
 def _is_invalid_api_key_error(err_str: str) -> bool:
@@ -508,7 +583,6 @@ def _is_invalid_api_key_error(err_str: str) -> bool:
 
 
 def call_llm(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
-    model = DEFAULT_MODEL  # locked to gpt-4o-mini
     """Query OpenAI Chat Completions API. Returns {"message": {"content": "<text>"}}"""
     # Normalize unicode chars that cause ASCII codec errors on Windows
     _uni = str.maketrans({'\u2014': '--', '\u2026': '...', '\u2192': '->', '\u2260': '!='})
@@ -523,7 +597,7 @@ def call_llm(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
 
     # Cache check
     ck = _cache_key(model, safe_system, safe_msg)
-    if ck in _CACHE:
+    if _cache_enabled() and ck in _CACHE:
         print("  [cache hit]", file=sys.stderr)
         return {"message": {"content": _CACHE[ck]}}
 
@@ -531,27 +605,41 @@ def call_llm(user_msg: str, model: str = DEFAULT_MODEL) -> dict:
     tried_dotenv_fallback = False
     for _attempt in range(5):
         try:
-            resp = client.chat.completions.create(
-                model=model,
-                messages=[
+            request = {
+                "model": model,
+                "messages": [
                     {"role": "system", "content": safe_system},
                     {"role": "user", "content": safe_msg},
                 ],
-                temperature=0.1,
-                max_tokens=4096,
-            )
+            }
+            if model.startswith("gpt-5"):
+                request["max_completion_tokens"] = 4096
+            else:
+                request["temperature"] = 0.1
+                request["max_tokens"] = 4096
+            resp = client.chat.completions.create(**request)
             text = resp.choices[0].message.content
             # Log OpenAI prompt-cache hit ratio (system prompt re-use)
             usage = getattr(resp, "usage", None)
             if usage is not None:
-                prompt_toks = getattr(usage, "prompt_tokens", 0)
+                prompt_toks = int(getattr(usage, "prompt_tokens", 0) or 0)
                 details = getattr(usage, "prompt_tokens_details", None)
-                cached = getattr(details, "cached_tokens", 0) if details else 0
+                cached = int(getattr(details, "cached_tokens", 0) or 0) if details else 0
                 if prompt_toks:
                     print(f"  [api] prompt={prompt_toks} cached={cached} "
                           f"({100 * cached / prompt_toks:.0f}%)", file=sys.stderr)
-            _CACHE[ck] = text
-            _cache_save(_CACHE)
+                completion_toks = int(getattr(usage, "completion_tokens", 0) or 0)
+                total_toks = int(getattr(usage, "total_tokens", 0) or 0)
+                _USAGE_TOTAL["api_calls"] += 1
+                _USAGE_TOTAL["prompt_tokens"] += prompt_toks
+                _USAGE_TOTAL["cached_tokens"] += cached
+                _USAGE_TOTAL["completion_tokens"] += completion_toks
+                _USAGE_TOTAL["total_tokens"] += total_toks
+                print(f"  [api] model={model} completion={completion_toks} total={total_toks}",
+                      file=sys.stderr)
+            if _cache_enabled():
+                _CACHE[ck] = text
+                _cache_save(_CACHE)
             break
         except Exception as e:
             err_str = str(e)
@@ -669,12 +757,15 @@ def deduplicate_detections(detections: list[dict], total_lines: int = 45) -> lis
         "FB": 2, "ES": 2, "STL": 3, "SPM": 1,
         "CO": 1, "HS": 1, "3PT": 2,
         "PM": 1, "ISO": 1, "BKW": 1,
-        "MR": 2, "LU": 1, "FL": 2, "REB": 2, "NLP": 2,
+        "MR": 2, "DT": 1, "LU": 1, "REB": 2, "A1B": 1, "BOX": 1,
+        "NLP": 2, "PF": 1, "FL": 2, "TIP": 1, "BLK": 1, "MFT": 2,
+        "XFT": 2,
         "DRG": 2, "FA": 2, "CAR": 2, "OFT": 2,
     }
 
     # Skills that represent unique battle moments — never scale
-    STRUCTURAL = {"FCS", "OGR", "4QP", "SD", "HCS", "SPM", "PM", "BKW"}
+    STRUCTURAL = {"FCS", "OGR", "4QP", "SD", "HCS", "SPM", "PM", "BKW",
+                  "DT", "A1B", "BOX", "PF", "TIP", "BLK"}
 
     # Scale factor: proportional to length, max 3x, rounded up
     scale = min(total_lines / 45.0, 3.0)
@@ -818,6 +909,7 @@ _OGR_CRAFT_MARKERS = re.compile(
 # a delivery beat.
 _ADLIB_PATTERNS = [
     re.compile(r"^(yo|yeah|uh-?huh|okay|alright|aight|check it( out)?)\b[\s,.\-]*$", re.IGNORECASE),
+    re.compile(r"^(yep|yes|nah|no|right|facts|word|mm+|hmm+)\b[\s,.\-!]*$", re.IGNORECASE),
     re.compile(r"^(you know( what)?( i)?[\'']?m sayin[\'g]?|feel me|ya feel me)\b[\s,.\-]*$", re.IGNORECASE),
     re.compile(r"^(yeah\s+)+yeah\b[\s,.\-]*$", re.IGNORECASE),  # "yeah yeah yeah ..."
     re.compile(r"^(let'?s go|let'?s get it|come on)\b[\s,.\-!]*$", re.IGNORECASE),
@@ -869,6 +961,221 @@ def _should_block_ogr(text: str) -> bool:
     return bool(generic.search(chunk))
 
 
+def _is_pure_adlib_line(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped:
+        return True
+    if any(p.match(stripped) for p in _ADLIB_PATTERNS):
+        return True
+    words = re.findall(r"[a-z']+", stripped.lower())
+    if not words:
+        return True
+    adlib_words = {"yo", "yeah", "uh", "huh", "aye", "ay", "okay", "alright", "aight"}
+    return len(words) <= 8 and sum(1 for w in words if w in adlib_words) / len(words) >= 0.75
+
+
+def _detection_lines(detection: dict) -> list[str]:
+    lines: list[str] = []
+    for raw in detection.get("lines", detection.get("evidence", [])):
+        for line in str(raw).splitlines():
+            stripped = line.strip()
+            if stripped:
+                lines.append(stripped)
+    return lines
+
+
+_REFERENCE_WORDS = re.compile(
+    r"\b("
+    r"jaden|jada|smith|jericho|motorola|razor|vegas|sierra|leone|kirk|franklin|"
+    r"wilkes|booth|wrestl|frog splash|spirit|airline|movie|film|phone|celebrity"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_WEAPON_THREAT_WORDS = re.compile(
+    r"\b("
+    r"gun|guns|shot|shots|shoot|shooting|bang|fifth|clip|metal|stainless|"
+    r"burner|desert|raise it|hit|harm|kill|deathbed|heaven|hell|blade|razor|"
+    r"blood|body|grave|coffin|die|dead"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_WORDPLAY_MARKERS = re.compile(
+    r"\b(like|as if|as a|than|means?|mean|word|name|initials?|flip|twist|double|"
+    r"sound|sounds|rhyme|scheme|pick|list|sense)\b",
+    re.IGNORECASE,
+)
+
+_SETUP_MARKERS = re.compile(
+    r"^(if|when|but|see|so|now|trust me|i'?m a|i will|you know|they say|"
+    r"at this point|the one thing)\b",
+    re.IGNORECASE,
+)
+
+_OPPONENT_MARKERS = re.compile(r"\b(you|your|y'all|he|him|his|they|them)\b", re.IGNORECASE)
+
+
+def _has_repetition_or_cadence(line: str) -> bool:
+    words = re.findall(r"[a-z']+", line.lower())
+    if len(words) < 4:
+        return False
+    # direct repeated word/phrase, or several short rhyming endings.
+    if any(a == b for a, b in zip(words, words[1:])):
+        return True
+    endings = [w[-3:] for w in words if len(w) >= 4]
+    if len(endings) >= 4 and len(set(endings)) <= max(2, len(endings) // 2):
+        return True
+    return False
+
+
+def _loose_display_candidate_for_line(line: str, idx: int, total: int) -> tuple[list[str], str]:
+    """
+    Display-only classifier for non-scored lines. It must NOT invent new roles
+    or affect scoring. The goal is to surface a battle-relevant read instead
+    of the old generic "MR fallback" that looked fake in the UI.
+    """
+    text = line.strip()
+    lower = text.lower()
+    words = re.findall(r"[a-z0-9']+", lower)
+    if len(words) < 3:
+        return [], ""
+
+    has_ref = bool(_REFERENCE_WORDS.search(text))
+    has_threat = bool(_WEAPON_THREAT_WORDS.search(text))
+    has_wordplay = bool(_WORDPLAY_MARKERS.search(text))
+    has_opp = bool(_OPPONENT_MARKERS.search(text))
+    is_question = "?" in text or lower.startswith(("what ", "why ", "how ", "who "))
+
+    if has_ref and has_wordplay:
+        return ["3PT"], "Candidate reference/wordplay read: the line uses a recognizable name, object, or outside reference; shown as a 3PT-style hint, not scored."
+    if has_ref:
+        return ["3PT"], "Candidate reference read: outside-name or pop-culture context is present; shown as a 3PT-style hint, not scored."
+    if has_threat and (" like " in lower or " as " in lower):
+        return ["HS"], "Candidate imagery read: threat or violence is framed through a comparison/metaphor; shown as a Hook Shot-style hint, not scored."
+    if has_threat:
+        return ["LU"], "Candidate attack read: direct threat/action imagery is present; shown as a Layup-style battle bar hint, not scored."
+    if is_question and has_opp:
+        return ["STL"], "Candidate rebuttal/challenge read: opponent-facing question or check; shown as a Steal-style hint, not scored."
+    if idx <= 4 and len(words) >= 4:
+        return ["OGR"], "Candidate opener read: early-round tone-setting/setup line; shown as an Out-the-Gate-style hint, not scored."
+    if idx >= max(1, total - 4) and len(words) >= 4:
+        return ["4QP"], "Candidate closer read: late-round closing/setup energy; shown as a Fourth-Quarter-style hint, not scored."
+    if _has_repetition_or_cadence(text):
+        return ["FL"], "Candidate cadence read: repetition/rhyme/flow texture is visible; shown as a Floater-style hint, not scored."
+    if _SETUP_MARKERS.search(text) and has_opp:
+        return ["ISO"], "Candidate angle read: direct opponent-focused setup/pressure line; shown as an Isolation-style hint, not scored."
+    if _SETUP_MARKERS.search(text):
+        return ["PM"], "Candidate setup read: positioning or angle-building line; shown as a Post Move-style hint, not scored."
+    if has_wordplay:
+        return ["LU"], "Candidate light craft read: simple wordplay/setup signal is present; shown as a Layup-style hint, not scored."
+    if has_opp and len(words) >= 5:
+        return ["ISO"], "Candidate direct-address read: opponent-focused battle line; shown as an Isolation-style hint, not scored."
+    return [], ""
+
+
+def build_line_display(
+    processed_lines: list[str],
+    final_detections: list[dict],
+    candidate_detections: list[dict],
+) -> list[dict]:
+    """Line-centric display metadata. Does not add skills, roles, or score."""
+    scored_by_line: dict[str, set[str]] = {}
+    candidate_by_line: dict[str, set[str]] = {}
+
+    for d in final_detections:
+        sid = str(d.get("skill_id", "")).strip()
+        if not sid:
+            continue
+        for line in _detection_lines(d):
+            scored_by_line.setdefault(line.casefold(), set()).add(sid)
+
+    for d in candidate_detections:
+        sid = str(d.get("skill_id", "")).strip()
+        if not sid:
+            continue
+        for line in _detection_lines(d):
+            candidate_by_line.setdefault(line.casefold(), set()).add(sid)
+
+    display = []
+    total_lines = len(processed_lines)
+    for idx, line in enumerate(processed_lines, start=1):
+        key = line.casefold()
+        scored_ids = sorted(scored_by_line.get(key, set()))
+        candidate_ids = sorted(candidate_by_line.get(key, set()) - set(scored_ids))
+        show = bool(scored_ids) or not _is_pure_adlib_line(line)
+        loose_default_candidate = False
+        loose_default_analysis = ""
+        if show and not scored_ids:
+            inferred_ids, inferred_analysis = _loose_display_candidate_for_line(
+                line, idx, total_lines
+            )
+            noisy_candidate = any(sid in {"MR", "DD", "FCS"} for sid in candidate_ids)
+            # Candidate-only rows are a display layer, so avoid exposing generic
+            # MR spam or gated/rejected-looking DD/FCS hints. Prefer a concrete
+            # battle read from the line itself; otherwise hide the weak row.
+            if candidate_ids and noisy_candidate:
+                if inferred_ids:
+                    candidate_ids = inferred_ids
+                    loose_default_candidate = True
+                    loose_default_analysis = inferred_analysis
+                else:
+                    candidate_ids = []
+                    show = False
+            elif candidate_ids:
+                # Prefer the readable, content-based explanation even when the
+                # LLM produced a candidate. Very short fragments with no
+                # explainable battle signal should not be surfaced as fake hits.
+                if inferred_ids:
+                    candidate_ids = inferred_ids
+                    loose_default_candidate = True
+                    loose_default_analysis = inferred_analysis
+                else:
+                    word_count = len(re.findall(r"[a-z0-9']+", line.lower()))
+                    has_concrete_signal = bool(
+                        _REFERENCE_WORDS.search(line) or _WEAPON_THREAT_WORDS.search(line)
+                    )
+                    if word_count < 4 and not has_concrete_signal:
+                        candidate_ids = []
+                        show = False
+            elif not candidate_ids:
+                # Display-only fallback: do not score, do not add a new skill/role.
+                # Use content-aware battle reads instead of a generic MR bucket.
+                candidate_ids = inferred_ids
+                loose_default_candidate = bool(candidate_ids)
+                loose_default_analysis = inferred_analysis
+                if not candidate_ids:
+                    show = False
+        if not show:
+            analysis = "Pure ad-lib/filler or no battle-readable content; hidden from expanded display."
+        elif scored_ids and candidate_ids:
+            analysis = (
+                f"Scored FCPBRL skill(s): {', '.join(scored_ids)}. "
+                f"Additional unscored candidate hint(s): {', '.join(candidate_ids)}."
+            )
+        elif scored_ids:
+            analysis = f"Scored FCPBRL skill(s): {', '.join(scored_ids)}."
+        elif loose_default_candidate:
+            analysis = loose_default_analysis
+        elif candidate_ids:
+            analysis = (
+                f"Candidate FCPBRL hint(s): {', '.join(candidate_ids)}; "
+                "shown for review but not scored after gates/dedup/caps."
+            )
+        else:
+            analysis = "Plain/setup/transition line; no scored FCPBRL skill."
+        display.append({
+            "line_index": idx,
+            "text": line,
+            "scored_skill_ids": scored_ids,
+            "candidate_skill_ids": candidate_ids,
+            "scored": bool(scored_ids),
+            "show": show,
+            "analysis": analysis,
+        })
+    return display
+
+
 def _auto_split_lines(text: str) -> str:
     """
     If text looks like a wall-of-text (Deepgram raw output with no line breaks),
@@ -910,7 +1217,6 @@ def hybrid_score(
     battler: str = None,
     opponent_bars: str = None,
 ) -> dict:
-    model = DEFAULT_MODEL  # locked to gpt-4o-mini
     text = _correct_slang(text)
     text = _auto_split_lines(text)
     text = _strip_adlib_lines(text)
@@ -1060,10 +1366,10 @@ def hybrid_score(
             )
             continue
         final_detections.append({
-            "skill_id": d["skill_id"],
-            "skill_name": d["skill_name"],
-            "points": d["points"],
-            "direction": d["direction"],
+            "skill_id": d.get("skill_id", ""),
+            "skill_name": d.get("skill_name", d.get("skill_id", "")),
+            "points": d.get("points", 0),
+            "direction": d.get("direction") or ("negative" if d.get("points", 0) < 0 else "positive"),
             "source": "rule_engine",
             "lines": d.get("evidence", [])[:2],
             "reason": f"Rule engine: {'; '.join(d.get('evidence', [])[:1])}",
@@ -1071,11 +1377,32 @@ def hybrid_score(
 
     for d in semantic_accepted:
         if d["skill_id"] not in RULE_ENGINE_TRUSTED:
-            final_detections.append({**d, "source": "llm"})
+            final_detections.append({
+                **d,
+                "direction": d.get("direction") or ("negative" if d.get("points", 0) < 0 else "positive"),
+                "source": "llm",
+            })
 
     total_score = sum(d["points"] for d in final_detections)
-    highlights = [d for d in final_detections if d["direction"] == "positive"]
-    deductions = [d for d in final_detections if d["direction"] == "negative"]
+    highlights = [d for d in final_detections if d.get("direction") == "positive"]
+    deductions = [d for d in final_detections if d.get("direction") == "negative"]
+    processed_lines = [line.strip() for line in text.splitlines() if line.strip()]
+    detected_line_keys = {
+        str(line).strip().casefold()
+        for detection in final_detections
+        for line in detection.get("lines", [])
+        if str(line).strip()
+    }
+    line_display = build_line_display(
+        processed_lines,
+        final_detections,
+        [*all_semantic_raw, *semantic_deduped, *semantic_gated_out],
+    )
+    display_line_count = sum(1 for item in line_display if item.get("show"))
+    candidate_line_count = sum(
+        1 for item in line_display
+        if item.get("show") and item.get("candidate_skill_ids") and not item.get("scored")
+    )
 
     return {
         "round_number": round_number,
@@ -1086,6 +1413,16 @@ def hybrid_score(
         "deductions": deductions,
         "all_detections": final_detections,
         "windows_used": len(windows),
+        "line_display": line_display,
+        "display_line_count": display_line_count,
+        "candidate_line_count": candidate_line_count,
+        "processed_line_count": len(processed_lines),
+        "detected_line_count": sum(
+            1 for line in processed_lines if line.casefold() in detected_line_keys
+        ),
+        "undetected_line_count": sum(
+            1 for line in processed_lines if line.casefold() not in detected_line_keys
+        ),
         "rule_engine_raw": {
             "trusted_found": [d["skill_id"] for d in trusted],
             "confirmed_by_llm": list(all_confirmed_ids),
@@ -1108,7 +1445,8 @@ def main():
     ap = argparse.ArgumentParser(description="Hybrid rule+LLM FCPBRL scorer")
     ap.add_argument("text", nargs="?", help="Lyrics text")
     ap.add_argument("--file", "-f", help="Path to lyrics file")
-    ap.add_argument("--model", "-m", default=DEFAULT_MODEL, help="(ignored, locked to gpt-4o-mini)")
+    ap.add_argument("--model", "-m", default=DEFAULT_MODEL,
+                    help="OpenAI judge model (default: OPENAI_JUDGE_MODEL or gpt-4o-mini)")
     ap.add_argument("--round", "-r", type=int, default=None)
     ap.add_argument("--battler", "-b", default=None)
     ap.add_argument("--opponent-bars", help="Opponent's bars as inline text (for STL detection)")

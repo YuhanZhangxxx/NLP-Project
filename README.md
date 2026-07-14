@@ -194,7 +194,20 @@ python skill_detection/hybrid_scorer_gpt.py --file lyrics.txt > result.json
 
 ## Model
 
-**Locked to `gpt-4o-mini`.** The `--model` CLI flag is accepted but ignored. All three entry points (`hybrid_scorer_gpt.py`, `match_scorer.py`, `score_from_db.py`) override any caller-supplied model and always use `gpt-4o-mini`.
+The judge model is configurable. Resolution order is: `--model` (CLI), `payload.model`, `OPENAI_JUDGE_MODEL`, then `gpt-4o-mini`.
+
+```bash
+# Single performance
+python skill_detection/hybrid_scorer_gpt.py --file data/battles/ralph_vs_rico/ralph_round1.txt --model gpt-4.1-mini
+
+# Full match JSON
+python skill_detection/match_scorer.py --file payload.json --model gpt-4.1-nano
+
+# DB-backed scoring
+python skill_detection/score_from_db.py --livestream-id <uuid> --model gpt-5-mini
+```
+
+For repeatable local testing, set `OPENAI_JUDGE_MODEL` in the environment. The scorer still uses the same prompt and rule engine; only the OpenAI judge model changes.
 
 ---
 
