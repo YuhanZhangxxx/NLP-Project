@@ -62,7 +62,9 @@ Usage:
 import argparse
 import json
 import os
+import re
 import sys
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -75,6 +77,121 @@ from hybrid_scorer_gpt import DEFAULT_MODEL, LLMError, get_usage, hybrid_score, 
 SCHEMA_VERSION = 1
 DEFAULT_TIE_THRESHOLD = 0.75
 ProgressCallback = Callable[[dict], None]
+
+# Estimated OpenAI judge prices in USD per 1M tokens:
+# (input_uncached, input_cached, output). Keep this as a default estimate only;
+# override with env OPENAI_PRICE_<MODEL>=input,cached,output if prices change.
+MODEL_PRICE_USD_PER_1M: dict[str, tuple[float, float, float]] = {
+    "gpt-4o-mini": (0.15, 0.075, 0.60),
+    "gpt-4o": (2.50, 1.25, 10.00),
+    "gpt-4.1-nano": (0.10, 0.025, 0.40),
+    "gpt-4.1-mini": (0.40, 0.10, 1.60),
+    "gpt-4.1": (2.00, 0.50, 8.00),
+    "gpt-5-mini": (0.25, 0.025, 2.00),
+    "gpt-5.4-nano": (0.20, 0.02, 1.25),
+    "gpt-5.4-mini": (0.75, 0.075, 4.50),
+    "gpt-5.6-luna": (0.50, 0.05, 3.00),
+    "gpt-5.6-terra": (1.25, 0.125, 7.50),
+    "gpt-5.6-sol": (2.50, 0.25, 15.00),
+}
+
+
+def _price_env_key(model: str) -> str:
+    key = re.sub(r"[^A-Za-z0-9]+", "_", model).strip("_").upper()
+    return f"OPENAI_PRICE_{key}"
+
+
+def _price_for_model(model: str) -> tuple[tuple[float, float, float] | None, str]:
+    env_key = _price_env_key(model)
+    raw = os.environ.get(env_key)
+    if raw:
+        try:
+            parts = [float(x.strip()) for x in raw.split(",")]
+            if len(parts) == 3:
+                return (parts[0], parts[1], parts[2]), f"env:{env_key}"
+        except ValueError:
+            pass
+    if model in MODEL_PRICE_USD_PER_1M:
+        return MODEL_PRICE_USD_PER_1M[model], "default_estimate"
+    return None, "unknown_model"
+
+
+def _estimate_cost(model: str, usage: dict) -> dict:
+    price, source = _price_for_model(model)
+    prompt = int(usage.get("prompt_tokens") or 0)
+    cached = int(usage.get("cached_tokens") or 0)
+    completion = int(usage.get("completion_tokens") or 0)
+    uncached = max(prompt - cached, 0)
+    if price is None:
+        return {
+            "currency": "USD",
+            "estimated": True,
+            "available": False,
+            "model": model,
+            "price_source": source,
+            "total_usd": None,
+        }
+    input_rate, cached_rate, output_rate = price
+    input_usd = uncached / 1_000_000 * input_rate
+    cached_usd = cached / 1_000_000 * cached_rate
+    output_usd = completion / 1_000_000 * output_rate
+    total = input_usd + cached_usd + output_usd
+    return {
+        "currency": "USD",
+        "estimated": True,
+        "available": True,
+        "model": model,
+        "price_source": source,
+        "rates_per_1m_tokens": {
+            "input_uncached": input_rate,
+            "input_cached": cached_rate,
+            "output": output_rate,
+        },
+        "billable_tokens": {
+            "input_uncached": uncached,
+            "input_cached": cached,
+            "output": completion,
+        },
+        "input_uncached_usd": round(input_usd, 6),
+        "input_cached_usd": round(cached_usd, 6),
+        "output_usd": round(output_usd, 6),
+        "total_usd": round(total, 6),
+    }
+
+
+def _text_stats(text: str) -> dict:
+    lines = [ln for ln in text.splitlines() if ln.strip()]
+    return {
+        "chars": len(text),
+        "non_whitespace_chars": len(re.sub(r"\s+", "", text)),
+        "words": len(re.findall(r"\b[\w']+\b", text)),
+        "lines": len(lines),
+    }
+
+
+def _input_stats(rounds_input: list[dict], battler_a: str, battler_b: str) -> dict:
+    by_round = []
+    totals = {
+        "chars": 0,
+        "non_whitespace_chars": 0,
+        "words": 0,
+        "lines": 0,
+        "rounds": len(rounds_input),
+        "performances": len(rounds_input) * 2,
+    }
+    for idx, pair in enumerate(rounds_input, start=1):
+        a = _text_stats(str(pair.get("a") or ""))
+        b = _text_stats(str(pair.get("b") or ""))
+        by_round.append({"round": idx, "a": a, "b": b})
+        for stats in (a, b):
+            for key in ("chars", "non_whitespace_chars", "words", "lines"):
+                totals[key] += stats[key]
+    return {
+        "battler_a": battler_a,
+        "battler_b": battler_b,
+        "totals": totals,
+        "rounds": by_round,
+    }
 
 
 def _round_winner(score_a: float, score_b: float, tie_threshold: float) -> str:
@@ -112,6 +229,8 @@ def score_match(payload: dict, progress_callback: ProgressCallback | None = None
     model = str(payload.get("model") or os.environ.get("OPENAI_JUDGE_MODEL") or DEFAULT_MODEL)
     total_performances = len(rounds_input) * 2
     reset_usage()
+    started = time.perf_counter()
+    input_stats = _input_stats(rounds_input, battler_a, battler_b)
 
     round_results: list[dict] = []
     a_wins = 0.0
@@ -180,6 +299,8 @@ def score_match(payload: dict, progress_callback: ProgressCallback | None = None
         prev_b_text = b_text
 
     match_winner, summary = _verdict_summary(a_wins, b_wins, battler_a, battler_b)
+    elapsed_seconds = round(time.perf_counter() - started, 3)
+    usage = get_usage()
     return {
         "schema_version": SCHEMA_VERSION,
         "status": "ok",
@@ -191,12 +312,17 @@ def score_match(payload: dict, progress_callback: ProgressCallback | None = None
         "rounds": round_results,
         "match_winner": match_winner,
         "summary": summary,
-        "usage": get_usage(),
+        "usage": usage,
+        "elapsed_seconds": elapsed_seconds,
+        "input_stats": input_stats,
+        "cost_estimate": _estimate_cost(model, usage),
         "error": None,
     }
 
 
 def _error_envelope(msg: str, match_id=None) -> dict:
+    usage = get_usage()
+    model = os.environ.get("OPENAI_JUDGE_MODEL") or DEFAULT_MODEL
     return {
         "schema_version": SCHEMA_VERSION,
         "status": "error",
@@ -205,7 +331,8 @@ def _error_envelope(msg: str, match_id=None) -> dict:
         "rounds": [],
         "match_winner": None,
         "summary": None,
-        "usage": get_usage(),
+        "usage": usage,
+        "cost_estimate": _estimate_cost(model, usage),
     }
 
 
