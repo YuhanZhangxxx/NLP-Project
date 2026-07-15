@@ -307,7 +307,9 @@ def build_llm_prompt(text: str, rule_findings: list[dict],
 {opponent_str}{findings_str}
 YOUR TASK: Find all SEMANTIC skills in THESE LINES ONLY (SD, FCS, HCS, ALY, AND1, FB, 3PT, ES, STL, CO, HS, OGR, 4QP, SPM, PM, PNR, ISO, BKW, MR, DT, LU, REB, A1B, BOX, NLP, PF, FL, TIP, BLK, MFT, XFT, FA, OFT, CAR, OOB, TECH, PC, GTD, BV, etc.).
 Do NOT detect DD, TVL, or CHK — the rule engine already handles those.
-Only report skills clearly present in the lines below. If nothing notable is here, return empty semantic_detections.
+Report strong skill moments AND medium-confidence battle-relevant skill moments when they genuinely fit an existing FCPBRL skill.
+For medium evidence, prefer lower/mid-value existing skills (MR, LU, HS, ISO, PM, PNR, FL, PF, BLK, MFT, BOX, REB) instead of over-awarding elite skills.
+Do not report pure filler/ad-libs, generic setup, or empty threats as scored skills. If nothing battle-relevant is here, return empty semantic_detections.
 
 BATTLE RAP TEXT:
 {text}"""
@@ -1176,6 +1178,119 @@ def build_line_display(
     return display
 
 
+def _word_count(text: str) -> int:
+    return len(re.findall(r"[A-Za-z0-9']+", text))
+
+
+def _split_long_fragment(fragment: str) -> list[str]:
+    """
+    Split one long Deepgram sentence into plausible rap/bar fragments without
+    shredding every comma into a separate denominator line.
+    """
+    fragment = re.sub(r"\s+", " ", fragment).strip()
+    if not fragment:
+        return []
+    if _word_count(fragment) <= 34:
+        return [fragment]
+
+    parts = [
+        p.strip()
+        for p in re.split(r"\s*(?:[,;:]|--|—|–)\s+", fragment)
+        if p.strip()
+    ]
+    if len(parts) <= 1:
+        return [fragment]
+
+    out: list[str] = []
+    buf: list[str] = []
+    buf_words = 0
+    for part in parts:
+        wc = _word_count(part)
+        if not buf:
+            buf = [part]
+            buf_words = wc
+            continue
+        # Keep comma pieces together until they form a usable bar. This is the
+        # main difference from the old splitter, which created lots of 2-6 word
+        # fragments and inflated undetected_line_count.
+        if buf_words < 14 or buf_words + wc <= 28:
+            buf.append(part)
+            buf_words += wc
+        else:
+            out.append(", ".join(buf))
+            buf = [part]
+            buf_words = wc
+    if buf:
+        out.append(", ".join(buf))
+    return out
+
+
+def _merge_short_fragments(fragments: list[str]) -> list[str]:
+    """
+    Merge short Deepgram fragments into judgeable bars.
+    Target: roughly 8-28 words. Very short pure fillers are still removed later.
+    """
+    merged: list[str] = []
+    buf: list[str] = []
+    buf_words = 0
+
+    def flush() -> None:
+        nonlocal buf, buf_words
+        if buf:
+            merged.append(" ".join(buf).strip())
+            buf = []
+            buf_words = 0
+
+    for frag in fragments:
+        frag = re.sub(r"\s+", " ", frag).strip()
+        if not frag:
+            continue
+        wc = _word_count(frag)
+        if wc == 0:
+            continue
+
+        # Long enough to stand alone, unless it can cleanly complete a short
+        # previous buffer.
+        if wc >= 8:
+            if buf and buf_words + wc <= 30:
+                buf.append(frag)
+                buf_words += wc
+                flush()
+            else:
+                flush()
+                merged.append(frag)
+            continue
+
+        # Short fragment: merge forward/backward instead of becoming its own
+        # denominator line.
+        if not buf:
+            buf = [frag]
+            buf_words = wc
+        elif buf_words + wc <= 28:
+            buf.append(frag)
+            buf_words += wc
+            if buf_words >= 8:
+                flush()
+        else:
+            flush()
+            buf = [frag]
+            buf_words = wc
+
+    flush()
+
+    # Collapse exact adjacent duplicates introduced by transcript repeats, but
+    # do not remove non-adjacent repeated hooks because repetition can be a skill.
+    deduped: list[str] = []
+    last_key = ""
+    for line in merged:
+        key = re.sub(r"[^a-z0-9']+", " ", line.lower()).strip()
+        if key and key == last_key:
+            continue
+        deduped.append(line)
+        last_key = key
+    return deduped
+
+
 def _auto_split_lines(text: str) -> str:
     """
     If text looks like a wall-of-text (Deepgram raw output with no line breaks),
@@ -1190,19 +1305,17 @@ def _auto_split_lines(text: str) -> str:
     if avg_words <= 15:
         return text  # already properly formatted
 
-    # Split on sentence-ending punctuation
+    # Split on sentence-ending punctuation, then split only truly long
+    # sentences on comma-like pauses, then merge short fragments back into
+    # judgeable bars.
     sentences = re.split(r'(?<=[.!?])\s+', text.strip())
-    result = []
+    fragments: list[str] = []
     for sent in sentences:
         sent = sent.strip()
         if not sent:
             continue
-        # Further split long sentences on commas
-        if len(sent.split()) > 18:
-            parts = re.split(r',\s+', sent)
-            result.extend(p.strip() for p in parts if p.strip())
-        else:
-            result.append(sent)
+        fragments.extend(_split_long_fragment(sent))
+    result = _merge_short_fragments(fragments)
     reformatted = '\n'.join(result)
     print(f"  [auto-split] Wall-of-text detected ({len(lines)} raw lines, "
           f"avg {avg_words:.0f} words/line) → split into {len(result)} lines",
